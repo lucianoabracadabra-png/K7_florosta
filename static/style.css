@@ -32,8 +32,6 @@ body {
     width: 100vw;
     height: 100vh;
     z-index: -1;
-    /* Removemos o background-image porque agora é uma tag IMG no HTML */
-    /* Isso garante que o SVG se estique corretamente sem cortar */
     object-fit: cover;
     pointer-events: none;
 }
