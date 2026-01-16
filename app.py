@@ -37,14 +37,14 @@ room_state = {
 # 3. FRONTEND (HTML/CSS/JS - AURORA DESIGN)
 # ==========================================
 
-# --- Interface Frontend (CYBERJUNGLE K7 EDITION 🌿🦾) ---
+# --- Interface Frontend (K7FLOROSTA EDITION 🌿🦾) ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBERJUNGLE SYNC</title>
+    <title>K7_FLOROSTA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
