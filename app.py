@@ -37,199 +37,270 @@ room_state = {
 # 3. FRONTEND (HTML/CSS/JS - AURORA DESIGN)
 # ==========================================
 
+# --- Interface Frontend (CYBERJUNGLE K7 EDITION 🌿🦾) ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurora K7 Sync</title>
+    <title>CYBERJUNGLE SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Monoton&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            --primary-glow: #00d4ff;
-            --tape-plastic: #1a1a1a;
-            --tape-label: #eee;
+            --jungle-green: #00ff41;
+            --toxic-yellow: #f0f000;
+            --poison-purple: #bc13fe;
+            --deep-swamp: #021207;
+            --mech-grey: #1a1f1c;
+            
+            --glass-bg: rgba(2, 20, 10, 0.6);
+            --glass-border: rgba(0, 255, 65, 0.3);
+            --neon-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Rajdhani', sans-serif;
             margin: 0;
             padding: 20px;
-            color: white;
+            color: #e0ffe0;
             min-height: 100vh;
-            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #4a1c40);
+            /* Fundo Animado de Floresta Digital */
+            background: linear-gradient(135deg, #051a0d, #000000, #0a2e1d, #1f0f2e);
             background-size: 400% 400%;
-            animation: aurora 15s ease infinite;
+            animation: bio-pulse 15s ease infinite;
             overflow-x: hidden;
         }
 
-        @keyframes aurora {
+        @keyframes bio-pulse {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
 
+        /* Scanlines Overlay (Efeito de monitor antigo) */
+        body::after {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+            pointer-events: none; z-index: 0;
+        }
+
         .container {
+            position: relative; z-index: 1;
             max-width: 900px;
             margin: 0 auto;
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            border-radius: 4px; /* Cantos mais retos estilo militar */
             padding: 30px;
-            box-shadow: var(--glass-shadow);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 50px rgba(0,255,65,0.05);
+            /* Cantos cortados (Clip-path) */
+            clip-path: polygon(
+                20px 0, 100% 0, 
+                100% calc(100% - 20px), calc(100% - 20px) 100%, 
+                0 100%, 0 20px
+            );
         }
 
         h1 {
-            font-family: 'Monoton', cursive;
+            font-family: 'Orbitron', sans-serif;
             text-align: center;
-            font-size: 2.5rem;
+            font-size: 3rem;
             margin-top: 0;
-            background: linear-gradient(to right, #00d4ff, #ff00cc);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            background: linear-gradient(to bottom, #fff, var(--jungle-green));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            text-shadow: 0 0 10px var(--jungle-green);
         }
 
-        /* --- PLAYER RECORDER WINDOW --- */
+        /* --- PLAYER DECK (ESTILO INDUSTRIAL) --- */
         #player-deck {
             background: #000;
-            border-radius: 15px;
-            padding: 10px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
             border: 2px solid #333;
+            border-top: 4px solid var(--jungle-green);
             margin-bottom: 25px;
             position: relative;
+            box-shadow: 0 10px 30px #000;
         }
-        
+
+        /* Luz de Status */
         #status-light {
-            width: 10px; height: 10px; border-radius: 50%;
+            width: 12px; height: 12px; 
             background: #333; position: absolute; top: 15px; right: 15px;
-            z-index: 10; box-shadow: 0 0 5px #000; transition: 0.3s;
+            z-index: 10; transition: 0.3s;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); /* Losango */
         }
-        #status-light.playing { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        #status-light.paused { background: #ff0; box-shadow: 0 0 10px #ff0; }
+        #status-light.playing { background: var(--jungle-green); box-shadow: 0 0 15px var(--jungle-green); }
+        #status-light.paused { background: var(--toxic-yellow); box-shadow: 0 0 15px var(--toxic-yellow); }
 
         #player-wrapper {
             position: relative; padding-bottom: 56.25%; height: 0;
-            border-radius: 8px; overflow: hidden;
-            opacity: 0.8; transition: opacity 0.5s;
+            opacity: 0.9; transition: opacity 0.5s;
+            border-bottom: 1px solid #333;
         }
-        #player-wrapper:hover { opacity: 1; }
         #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* --- INPUTS & CONTROLS --- */
-        .input-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        /* --- INPUTS --- */
+        .input-group { display: flex; gap: 0; margin-bottom: 25px; border: 1px solid var(--jungle-green); }
         input[type="text"] {
-            flex: 1; padding: 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.3); color: white; outline: none;
-            font-family: 'Inter', sans-serif; transition: 0.3s;
+            flex: 1; padding: 15px; border: none;
+            background: rgba(0,0,0,0.6); color: var(--jungle-green); outline: none;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9rem;
         }
-        input[type="text"]:focus { border-color: var(--primary-glow); box-shadow: 0 0 15px rgba(0, 212, 255, 0.3); }
+        input[type="text"]::placeholder { color: rgba(0, 255, 65, 0.3); }
 
         .btn {
-            padding: 12px 25px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer; font-weight: bold; background: rgba(255,255,255,0.1);
-            color: white; backdrop-filter: blur(5px); transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;
-            font-size: 0.8rem;
+            padding: 12px 25px; border: none; cursor: pointer; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 1px; font-family: 'Orbitron', sans-serif;
+            transition: 0.2s; position: relative; overflow: hidden;
         }
-        .btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .btn-primary { background: linear-gradient(45deg, #00d4ff, #0051ff); border: none; }
-        .btn-danger { background: linear-gradient(45deg, #ff0055, #ff00cc); border: none; }
         
-        .controls { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; }
+        /* Botão INSERIR (Integrado ao input) */
+        .btn-insert {
+            background: var(--jungle-green); color: #000;
+            clip-path: polygon(20% 0, 100% 0, 100% 100%, 0 100%);
+            padding-left: 30px;
+        }
+        .btn-insert:hover { background: #fff; }
 
-        /* --- FITA K7 (LIST ITEM) --- */
+        /* Controles Principais */
+        .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+        
+        .btn-ctrl {
+            background: transparent; border: 1px solid var(--jungle-green); color: var(--jungle-green);
+            box-shadow: inset 0 0 10px rgba(0,255,65,0.1);
+        }
+        .btn-ctrl:hover { background: var(--jungle-green); color: #000; box-shadow: 0 0 20px var(--jungle-green); }
+        
+        /* Checkbox customizado */
+        .cyber-check {
+            display: flex; align-items: center; cursor: pointer; border: 1px solid var(--poison-purple);
+            color: var(--poison-purple); padding: 10px 20px; transition: 0.3s;
+        }
+        .cyber-check:has(input:checked) { background: var(--poison-purple); color: #fff; box-shadow: 0 0 15px var(--poison-purple); }
+        .cyber-check input { display: none; }
+
+        /* --- PLAYLIST (FITAS K7 BIOLÓGICAS) --- */
         #playlist { 
             list-style: none; padding: 0; display: flex; flex-direction: column; gap: 15px; 
             max-height: 500px; overflow-y: auto; padding-right: 5px;
         }
-        
-        #playlist::-webkit-scrollbar { width: 6px; }
-        #playlist::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        #playlist::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        #playlist::-webkit-scrollbar { width: 4px; }
+        #playlist::-webkit-scrollbar-thumb { background: var(--jungle-green); }
 
         .k7-tape {
-            background: var(--tape-plastic);
-            border-radius: 10px;
+            background: rgba(10, 20, 10, 0.8);
+            border: 1px solid #333;
+            border-left: 5px solid #333;
             padding: 10px;
+            display: flex; align-items: center;
             position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: transform 0.3s, border-color 0.3s;
-            border: 2px solid #333;
-            display: flex;
-            align-items: center;
-            overflow: hidden;
+            transition: all 0.3s ease;
+            /* CRUCIAL: Impede o esmagamento */
+            flex-shrink: 0; 
+            min-height: 80px; 
         }
 
+        /* Efeito de musgo/sujeira digital */
         .k7-tape::before {
-            content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
-            background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px);
+            content: ''; position: absolute; top: 0; right: 0; width: 30px; height: 100%;
+            background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.5) 5px, rgba(0,0,0,0.5) 10px);
             pointer-events: none;
         }
 
-        .k7-tape:hover { transform: scale(1.02); border-color: #555; }
-        
+        .k7-tape:hover { border-color: var(--jungle-green); transform: translateX(5px); }
+
         .k7-tape.active {
-            border-color: var(--primary-glow);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-            background: #222;
+            border-left-color: var(--jungle-green);
+            background: rgba(0, 50, 20, 0.6);
+            box-shadow: inset 0 0 20px rgba(0,255,65,0.1);
         }
 
+        /* Adesivo da Fita (Thumbnail) */
         .k7-label-area {
-            width: 120px; height: 70px;
-            background: #ccc;
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
+            width: 100px; height: 60px;
+            background: #000;
+            border: 2px solid #555;
             margin-right: 15px;
-            flex-shrink: 0;
-            border: 4px solid #fff;
+            position: relative;
+            flex-shrink: 0; /* Garante que a imagem não esmaga */
+            overflow: hidden;
         }
-        .k7-label-img { width: 100%; height: 100%; object-fit: cover; filter: sepia(30%); }
+        .k7-label-img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(80%) contrast(120%); transition: 0.3s; }
+        .active .k7-label-img { filter: grayscale(0%) sepia(20%); }
 
-        .k7-info { flex: 1; z-index: 2; }
-        .k7-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 4px; display: block; }
-        .k7-status { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .k7-info { flex: 1; z-index: 2; overflow: hidden; }
+        .k7-title { 
+            font-weight: 700; font-size: 1rem; color: #fff; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+        }
+        .k7-status { font-size: 0.8rem; color: var(--jungle-green); letter-spacing: 2px; }
 
-        .k7-reels { display: flex; gap: 15px; margin-right: 15px; }
-        .reel-svg { width: 30px; height: 30px; fill: none; stroke: #555; stroke-width: 3; }
-        .active .reel-svg { stroke: var(--primary-glow); }
+        /* Reels (Engrenagens) */
+        .k7-reels { display: flex; gap: 10px; margin-right: 20px; }
+        .reel-svg { width: 35px; height: 35px; fill: none; stroke: #444; stroke-width: 2; }
+        .active .reel-svg { stroke: var(--jungle-green); }
         
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .active.playing .reel-svg { animation: spin 2s linear infinite; }
+        @keyframes cyber-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .active.playing .reel-svg { animation: cyber-spin 2s linear infinite; }
 
         .btn-remove {
-            background: transparent; border: none; color: #555; cursor: pointer; font-size: 1.2rem;
-            transition: 0.2s; z-index: 5;
+            background: transparent; border: none; color: #444; cursor: pointer; font-size: 1.5rem;
+            transition: 0.2s; padding: 0 10px;
         }
-        .btn-remove:hover { color: #ff0055; transform: scale(1.2); }
+        .btn-remove:hover { color: var(--toxic-yellow); text-shadow: 0 0 10px var(--toxic-yellow); }
 
+        /* --- SYNC AREA --- */
         .sync-area { 
-            display: flex; justify-content: space-between; margin-top: 20px; 
-            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center; margin-top: 20px; 
+            border-top: 1px solid #333; padding-top: 20px;
+        }
+        .btn-sync { font-size: 0.7rem; letter-spacing: 0; padding: 8px 15px; }
+        .btn-pull { background: #222; color: #aaa; border: 1px solid #444; }
+        .btn-pull:hover { color: #fff; border-color: #fff; }
+        
+        .btn-force { background: #300; color: #f55; border: 1px solid #500; }
+        .btn-force:hover { background: #f00; color: #000; box-shadow: 0 0 15px #f00; }
+
+        /* --- TOAST FIX (Z-INDEX ALTO) --- */
+        #toast { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            background: #000; 
+            border: 1px solid var(--jungle-green); 
+            color: var(--jungle-green); 
+            padding: 15px 40px; 
+            text-transform: uppercase; letter-spacing: 2px; font-weight: bold;
+            box-shadow: 0 0 30px rgba(0,255,65,0.3);
+            opacity: 0; transition: 0.3s; pointer-events: none;
+            z-index: 10000; /* CORREÇÃO DO PROBLEMA DE VISIBILIDADE */
         }
         
-        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index:99; display:flex; justify-content:center; align-items:center; flex-direction:column; backdrop-filter: blur(20px); cursor: pointer;}
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 1px solid var(--primary-glow); color: var(--primary-glow); padding: 12px 30px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; font-weight: bold; box-shadow: 0 0 20px rgba(0,212,255,0.2);}
+        /* Overlay Inicial */
+        #overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(0,10,5,0.95); z-index: 9999; 
+            display:flex; justify-content:center; align-items:center; flex-direction:column; 
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="overlay" onclick="startSession()">
-        <h1 style="font-size: 4rem; margin-bottom:0;">PLAY</h1>
-        <p style="color: #ccc; letter-spacing: 2px;">CLICK TO START SESSION</p>
+        <h1 style="font-size: 5rem; margin-bottom:0; text-shadow: 0 0 20px var(--jungle-green);">START</h1>
+        <p style="color: var(--jungle-green); letter-spacing: 4px; font-family: 'Orbitron';">INITIALIZE SYSTEM</p>
     </div>
     
     <div id="toast">SYSTEM READY</div>
 
     <div class="container">
-        <h1>AURORA SYNC <span style="font-size: 0.5em; vertical-align: super; opacity: 0.7;">v8</span></h1>
+        <h1>CYBER<span style="color:#fff">JUNGLE</span></h1>
 
         <div id="player-deck">
             <div id="status-light"></div>
@@ -237,16 +308,17 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="input-group">
-            <input type="text" id="linkInput" placeholder="Cole o link do YouTube..." onkeypress="if(event.key==='Enter') addLink()">
-            <button class="btn btn-primary" onclick="addLink()">INSERIR FITA</button>
+            <input type="text" id="linkInput" placeholder="> INSERT YOUTUBE DATA LINK..." onkeypress="if(event.key==='Enter') addLink()">
+            <button class="btn btn-insert" onclick="addLink()">LOAD</button>
         </div>
 
         <div class="controls">
-            <button class="btn" onclick="sendControl('playpause')">⏯ Play/Pause</button>
-            <button class="btn" onclick="sendControl('next')">⏭ Eject / Next</button>
-            <button class="btn" onclick="sendControl('shuffle')">🔀 Shuffle</button>
-            <label class="btn" style="border-color: var(--primary-glow); color: var(--primary-glow);">
-                <input type="checkbox" id="autoDjCheck" onchange="toggleDj()" checked> &nbsp; AUTO-DJ
+            <button class="btn btn-ctrl" onclick="sendControl('playpause')">⏯ EXECUTE</button>
+            <button class="btn btn-ctrl" onclick="sendControl('next')">⏭ NEXT TRACK</button>
+            <button class="btn btn-ctrl" onclick="sendControl('shuffle')">🔀 RANDOMIZE</button>
+            <label class="btn cyber-check">
+                <input type="checkbox" id="autoDjCheck" onchange="toggleDj()" checked> 
+                🤖 AUTO-DJ
             </label>
         </div>
 
@@ -254,21 +326,17 @@ HTML_TEMPLATE = """
             </ul>
 
         <div class="sync-area">
-            <button class="btn" onclick="requestSync()" style="font-size: 0.7rem;">⬇️ RESYNC (PUXAR)</button>
-            <div style="color: #666; font-size: 0.8rem; align-self: center;">SERVER HEARTBEAT: 10s</div>
-            <button class="btn btn-danger" onclick="masterSync()" style="font-size: 0.7rem;">⬆️ MASTER FORCE</button>
+            <button class="btn btn-sync btn-pull" onclick="requestSync()">⬇️ RE-SYNC DATA</button>
+            <div style="color: #444; font-size: 0.7rem; font-family: 'Orbitron';">HEARTBEAT: ACTIVE</div>
+            <button class="btn btn-sync btn-force" onclick="masterSync()">⬆️ MASTER OVERRIDE</button>
         </div>
     </div>
 
     <svg style="display: none;">
         <symbol id="gear-icon" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-            <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor"/>
-            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-            <rect x="11" y="2" width="2" height="4" fill="currentColor"/>
-            <rect x="11" y="18" width="2" height="4" fill="currentColor"/>
-            <rect x="2" y="11" width="4" height="2" fill="currentColor"/>
-            <rect x="18" y="11" width="4" height="2" fill="currentColor"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor" opacity="0.3"/>
+            <path d="M12 4V2M12 20v2M4 12H2m20 0h-2m-2.17-5.83l-1.42-1.42M17.59 17.59l-1.42-1.42M6.41 6.41L5 5m1.41 12.59L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
         </symbol>
     </svg>
 
@@ -347,7 +415,7 @@ HTML_TEMPLATE = """
 
         function addLink() {
             let url = document.getElementById('linkInput').value;
-            if(url) { showToast("SCANNING TAPE..."); socket.emit('add_video', url); document.getElementById('linkInput').value = ''; }
+            if(url) { showToast("DECODING..."); socket.emit('add_video', url); document.getElementById('linkInput').value = ''; }
         }
 
         function sendControl(type) {
@@ -359,9 +427,9 @@ HTML_TEMPLATE = """
             else if (type === 'shuffle') socket.emit('shuffle');
         }
         
-        function requestSync() { showToast("RESYNCING..."); socket.emit('request_sync'); }
+        function requestSync() { showToast("SYNCING..."); socket.emit('request_sync'); }
         function masterSync() {
-            if(!isReady) return; showToast("OVERRIDING SYSTEM...");
+            if(!isReady) return; showToast("OVERRIDING...");
             let data = { time: player.getCurrentTime(), is_playing: player.getPlayerState() === 1 };
             socket.emit('master_sync_force', data);
         }
@@ -375,6 +443,7 @@ HTML_TEMPLATE = """
                 let isActive = (i === state.current_video_index);
                 let isPlaying = isActive && state.is_playing;
                 li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
+                
                 let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
                 
                 let reelsHtml = `
@@ -391,7 +460,7 @@ HTML_TEMPLATE = """
                     ${reelsHtml}
                     <div class="k7-info">
                         <span class="k7-title">${i+1}. ${v.title}</span>
-                        <span class="k7-status">${isActive ? (isPlaying ? '▶ PLAYING' : '⏸ PAUSED') : 'QUEUED'}</span>
+                        <span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span>
                     </div>
                     ${btn}
                 `;
