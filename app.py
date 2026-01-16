@@ -25,26 +25,22 @@ room_state = {
     'playlist': [],             
     'current_video_index': 0,   
     'is_playing': False,        
-    
-    # Sistema de Ancoragem de Tempo
-    'anchor_time': 0,           # Posição do vídeo no momento da ação
-    'server_start_time': 0,     # Timestamp do servidor no momento da ação
-    
+    'anchor_time': 0,           
+    'server_start_time': 0,     
     'auto_dj_enabled': True     
 }
 
 # ==========================================
-# 3. FRONTEND (HTML/CSS/JS - AURORA DESIGN)
+# 3. FRONTEND (K7 FLORESTA + RETRO GRID SVG)
 # ==========================================
 
-# --- Interface Frontend (K7FLOROSTA EDITION 🌿🦾) ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K7_FLOROSTA</title>
+    <title>K7_floresta SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -53,11 +49,10 @@ HTML_TEMPLATE = """
             --toxic-yellow: #f0f000;
             --poison-purple: #bc13fe;
             --deep-swamp: #021207;
-            --mech-grey: #1a1f1c;
             
-            --glass-bg: rgba(2, 20, 10, 0.6);
-            --glass-border: rgba(0, 255, 65, 0.3);
-            --neon-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+            /* Vidro mais escuro para contrastar com o Grid brilhante */
+            --glass-bg: rgba(0, 10, 5, 0.7); 
+            --glass-border: rgba(0, 255, 65, 0.4);
         }
 
         body {
@@ -66,20 +61,11 @@ HTML_TEMPLATE = """
             padding: 20px;
             color: #e0ffe0;
             min-height: 100vh;
-            /* Fundo Animado de Floresta Digital */
-            background: linear-gradient(135deg, #051a0d, #000000, #0a2e1d, #1f0f2e);
-            background-size: 400% 400%;
-            animation: bio-pulse 15s ease infinite;
+            background-color: #000; /* Fundo preto base caso o SVG demore */
             overflow-x: hidden;
         }
 
-        @keyframes bio-pulse {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Scanlines Overlay (Efeito de monitor antigo) */
+        /* Scanlines Overlay (Mantido para dar textura ao SVG) */
         body::after {
             content: "";
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -92,12 +78,13 @@ HTML_TEMPLATE = """
             max-width: 900px;
             margin: 0 auto;
             background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px); /* Blur reduzido para ver o grid atrás */
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid var(--glass-border);
-            border-radius: 4px; /* Cantos mais retos estilo militar */
+            border-radius: 4px; 
             padding: 30px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 50px rgba(0,255,65,0.05);
+            box-shadow: 0 0 50px rgba(0,0,0,0.9), inset 0 0 50px rgba(0,255,65,0.05);
+            
             /* Cantos cortados (Clip-path) */
             clip-path: polygon(
                 20px 0, 100% 0, 
@@ -119,7 +106,7 @@ HTML_TEMPLATE = """
             text-shadow: 0 0 10px var(--jungle-green);
         }
 
-        /* --- PLAYER DECK (ESTILO INDUSTRIAL) --- */
+        /* --- PLAYER DECK --- */
         #player-deck {
             background: #000;
             border: 2px solid #333;
@@ -129,12 +116,11 @@ HTML_TEMPLATE = """
             box-shadow: 0 10px 30px #000;
         }
 
-        /* Luz de Status */
         #status-light {
             width: 12px; height: 12px; 
             background: #333; position: absolute; top: 15px; right: 15px;
             z-index: 10; transition: 0.3s;
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); /* Losango */
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); 
         }
         #status-light.playing { background: var(--jungle-green); box-shadow: 0 0 15px var(--jungle-green); }
         #status-light.paused { background: var(--toxic-yellow); box-shadow: 0 0 15px var(--toxic-yellow); }
@@ -161,7 +147,6 @@ HTML_TEMPLATE = """
             transition: 0.2s; position: relative; overflow: hidden;
         }
         
-        /* Botão INSERIR (Integrado ao input) */
         .btn-insert {
             background: var(--jungle-green); color: #000;
             clip-path: polygon(20% 0, 100% 0, 100% 100%, 0 100%);
@@ -169,7 +154,6 @@ HTML_TEMPLATE = """
         }
         .btn-insert:hover { background: #fff; }
 
-        /* Controles Principais */
         .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
         
         .btn-ctrl {
@@ -178,7 +162,6 @@ HTML_TEMPLATE = """
         }
         .btn-ctrl:hover { background: var(--jungle-green); color: #000; box-shadow: 0 0 20px var(--jungle-green); }
         
-        /* Checkbox customizado */
         .cyber-check {
             display: flex; align-items: center; cursor: pointer; border: 1px solid var(--poison-purple);
             color: var(--poison-purple); padding: 10px 20px; transition: 0.3s;
@@ -186,7 +169,7 @@ HTML_TEMPLATE = """
         .cyber-check:has(input:checked) { background: var(--poison-purple); color: #fff; box-shadow: 0 0 15px var(--poison-purple); }
         .cyber-check input { display: none; }
 
-        /* --- PLAYLIST (FITAS K7 BIOLÓGICAS) --- */
+        /* --- PLAYLIST --- */
         #playlist { 
             list-style: none; padding: 0; display: flex; flex-direction: column; gap: 15px; 
             max-height: 500px; overflow-y: auto; padding-right: 5px;
@@ -196,42 +179,29 @@ HTML_TEMPLATE = """
         #playlist::-webkit-scrollbar-thumb { background: var(--jungle-green); }
 
         .k7-tape {
-            background: rgba(10, 20, 10, 0.8);
+            background: rgba(10, 20, 10, 0.9); /* Mais opaco para ler melhor sobre o grid */
             border: 1px solid #333;
             border-left: 5px solid #333;
             padding: 10px;
             display: flex; align-items: center;
             position: relative;
             transition: all 0.3s ease;
-            /* CRUCIAL: Impede o esmagamento */
             flex-shrink: 0; 
             min-height: 80px; 
-        }
-
-        /* Efeito de musgo/sujeira digital */
-        .k7-tape::before {
-            content: ''; position: absolute; top: 0; right: 0; width: 30px; height: 100%;
-            background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.5) 5px, rgba(0,0,0,0.5) 10px);
-            pointer-events: none;
         }
 
         .k7-tape:hover { border-color: var(--jungle-green); transform: translateX(5px); }
 
         .k7-tape.active {
             border-left-color: var(--jungle-green);
-            background: rgba(0, 50, 20, 0.6);
+            background: rgba(0, 50, 20, 0.8);
             box-shadow: inset 0 0 20px rgba(0,255,65,0.1);
         }
 
-        /* Adesivo da Fita (Thumbnail) */
         .k7-label-area {
             width: 100px; height: 60px;
-            background: #000;
-            border: 2px solid #555;
-            margin-right: 15px;
-            position: relative;
-            flex-shrink: 0; /* Garante que a imagem não esmaga */
-            overflow: hidden;
+            background: #000; border: 2px solid #555;
+            margin-right: 15px; position: relative; flex-shrink: 0; overflow: hidden;
         }
         .k7-label-img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(80%) contrast(120%); transition: 0.3s; }
         .active .k7-label-img { filter: grayscale(0%) sepia(20%); }
@@ -243,7 +213,6 @@ HTML_TEMPLATE = """
         }
         .k7-status { font-size: 0.8rem; color: var(--jungle-green); letter-spacing: 2px; }
 
-        /* Reels (Engrenagens) */
         .k7-reels { display: flex; gap: 10px; margin-right: 20px; }
         .reel-svg { width: 35px; height: 35px; fill: none; stroke: #444; stroke-width: 2; }
         .active .reel-svg { stroke: var(--jungle-green); }
@@ -257,7 +226,6 @@ HTML_TEMPLATE = """
         }
         .btn-remove:hover { color: var(--toxic-yellow); text-shadow: 0 0 10px var(--toxic-yellow); }
 
-        /* --- SYNC AREA --- */
         .sync-area { 
             display: flex; justify-content: space-between; align-items: center; margin-top: 20px; 
             border-top: 1px solid #333; padding-top: 20px;
@@ -269,7 +237,7 @@ HTML_TEMPLATE = """
         .btn-force { background: #300; color: #f55; border: 1px solid #500; }
         .btn-force:hover { background: #f00; color: #000; box-shadow: 0 0 15px #f00; }
 
-        /* --- TOAST FIX (Z-INDEX ALTO) --- */
+        /* Toast Loading (Z-Index alto para ficar acima do SVG e do Container) */
         #toast { 
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
             background: #000; 
@@ -279,10 +247,9 @@ HTML_TEMPLATE = """
             text-transform: uppercase; letter-spacing: 2px; font-weight: bold;
             box-shadow: 0 0 30px rgba(0,255,65,0.3);
             opacity: 0; transition: 0.3s; pointer-events: none;
-            z-index: 10000; /* CORREÇÃO DO PROBLEMA DE VISIBILIDADE */
+            z-index: 10000; 
         }
         
-        /* Overlay Inicial */
         #overlay { 
             position: fixed; top:0; left:0; width:100%; height:100%; 
             background: rgba(0,10,5,0.95); z-index: 9999; 
@@ -292,6 +259,170 @@ HTML_TEMPLATE = """
     </style>
 </head>
 <body>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;">
+      <defs>
+        <linearGradient id="gridGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#00ff41;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#00ff41;stop-opacity:0.1" />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <filter id="strongGlow">
+          <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      <rect width="1920" height="1080" fill="#000000"/>
+      
+      <g id="mainGrid" transform="translate(960, 400)">
+        <line x1="-960" y1="0" x2="960" y2="0" stroke="#00ff41" stroke-width="3" opacity="1" filter="url(#glow)"/>
+        <line x1="-860" y1="60" x2="860" y2="60" stroke="#00ff41" stroke-width="3" opacity="0.9" filter="url(#glow)"/>
+        <line x1="-760" y1="110" x2="760" y2="110" stroke="#00ff41" stroke-width="2.5" opacity="0.8" filter="url(#glow)"/>
+        <line x1="-660" y1="155" x2="660" y2="155" stroke="#00ff41" stroke-width="2.5" opacity="0.7" filter="url(#glow)"/>
+        <line x1="-560" y1="195" x2="560" y2="195" stroke="#00ff41" stroke-width="2" opacity="0.6" filter="url(#glow)"/>
+        <line x1="-460" y1="230" x2="460" y2="230" stroke="#00ff41" stroke-width="2" opacity="0.5" filter="url(#glow)"/>
+        <line x1="-360" y1="262" x2="360" y2="262" stroke="#00ff41" stroke-width="1.5" opacity="0.4" filter="url(#glow)"/>
+        <line x1="-260" y1="290" x2="260" y2="290" stroke="#00ff41" stroke-width="1.5" opacity="0.3" filter="url(#glow)"/>
+        <line x1="-160" y1="315" x2="160" y2="315" stroke="#00ff41" stroke-width="1" opacity="0.2" filter="url(#glow)"/>
+        <line x1="-60" y1="337" x2="60" y2="337" stroke="#00ff41" stroke-width="1" opacity="0.15" filter="url(#glow)"/>
+        <line x1="0" y1="0" x2="0" y2="350" stroke="#00ff41" stroke-width="4" opacity="1" filter="url(#strongGlow)"/>
+        <line x1="-960" y1="0" x2="-50" y2="350" stroke="#00ff41" stroke-width="2" opacity="0.6" filter="url(#glow)"/>
+        <line x1="-720" y1="0" x2="-38" y2="350" stroke="#00ff41" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
+        <line x1="-480" y1="0" x2="-25" y2="350" stroke="#00ff41" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
+        <line x1="-240" y1="0" x2="-13" y2="350" stroke="#00ff41" stroke-width="1.2" opacity="0.4" filter="url(#glow)"/>
+        <line x1="960" y1="0" x2="50" y2="350" stroke="#00ff41" stroke-width="2" opacity="0.6" filter="url(#glow)"/>
+        <line x1="720" y1="0" x2="38" y2="350" stroke="#00ff41" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
+        <line x1="480" y1="0" x2="25" y2="350" stroke="#00ff41" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
+        <line x1="240" y1="0" x2="13" y2="350" stroke="#00ff41" stroke-width="1.2" opacity="0.4" filter="url(#glow)"/>
+      </g>
+      
+      <g id="mountains" opacity="0.4" transform="translate(0, 250)">
+        <path d="M 0,200 L 150,80 L 200,120 L 300,40 L 400,100 L 500,60 L 600,140" fill="none" stroke="#00ff41" stroke-width="2" filter="url(#glow)"/>
+        <path d="M 150,80 L 150,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 300,40 L 300,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 500,60 L 500,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 1320,140 L 1420,60 L 1500,100 L 1620,40 L 1720,120 L 1770,80 L 1920,200" fill="none" stroke="#00ff41" stroke-width="2" filter="url(#glow)"/>
+        <path d="M 1420,60 L 1420,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 1620,40 L 1620,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 1720,120 L 1720,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+        <path d="M 700,180 L 820,90 L 900,130 L 960,70 L 1020,130 L 1100,90 L 1220,180" fill="none" stroke="#00ff41" stroke-width="1.5" opacity="0.5" filter="url(#glow)"/>
+        <path d="M 820,90 L 820,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.2"/>
+        <path d="M 960,70 L 960,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.2"/>
+        <path d="M 1100,90 L 1100,500" fill="none" stroke="#00ff41" stroke-width="0.5" opacity="0.2"/>
+      </g>
+      
+      <g id="palm1" transform="translate(200, 450)" filter="url(#glow)">
+        <path d="M 0,450 Q -8,340 -3,230 Q 2,120 0,0" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
+        <line x1="-6" y1="400" x2="6" y2="400" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-7" y1="350" x2="5" y2="350" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-5" y1="300" x2="7" y2="300" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-6" y1="250" x2="6" y2="250" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-4" y1="200" x2="8" y2="200" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-5" y1="150" x2="7" y2="150" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-3" y1="100" x2="9" y2="100" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-4" y1="50" x2="8" y2="50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <path d="M 0,0 Q -60,-20 -110,-5" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.9"/>
+        <path d="M -40,-10 L -95,-3" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M -60,-14 L -105,-5" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q -50,-35 -90,-30" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+        <path d="M -30,-17 L -75,-25" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q -40,-50 -70,-60" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 60,-20 110,-5" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.9"/>
+        <path d="M 40,-10 L 95,-3" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q 50,-35 90,-30" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+        <path d="M 30,-17 L 75,-25" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q 40,-50 70,-60" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q -8,-60 0,-95" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.9"/>
+        <path d="M 0,0 Q 8,-60 0,-95" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.8"/>
+      </g>
+      <g id="palm2" transform="translate(1720, 420)" filter="url(#glow)">
+        <path d="M 0,480 Q 10,360 5,240 Q -2,120 0,0" fill="none" stroke="#00ff41" stroke-width="7" opacity="0.9"/>
+        <line x1="-7" y1="430" x2="7" y2="430" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-8" y1="380" x2="6" y2="380" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-6" y1="330" x2="8" y2="330" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-7" y1="280" x2="7" y2="280" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-5" y1="230" x2="9" y2="230" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-6" y1="180" x2="8" y2="180" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-4" y1="130" x2="10" y2="130" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-5" y1="80" x2="9" y2="80" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="-3" y1="30" x2="11" y2="30" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <path d="M 0,0 Q -70,-18 -130,-3" fill="none" stroke="#00ff41" stroke-width="3.5" opacity="0.9"/>
+        <path d="M -50,-9 L -115,-2" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q -60,-32 -105,-28" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+        <path d="M -35,-16 L -90,-23" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q -45,-52 -80,-65" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 70,-18 130,-3" fill="none" stroke="#00ff41" stroke-width="3.5" opacity="0.9"/>
+        <path d="M 50,-9 L 115,-2" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q 60,-32 105,-28" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+        <path d="M 35,-16 L 90,-23" fill="none" stroke="#00ff41" stroke-width="1" opacity="0.5"/>
+        <path d="M 0,0 Q 45,-52 80,-65" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q -10,-65 -3,-105" fill="none" stroke="#00ff41" stroke-width="3.5" opacity="0.9"/>
+        <path d="M 0,0 Q 10,-65 3,-105" fill="none" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+      </g>
+      <g id="palm3" transform="translate(450, 520)" opacity="0.5" filter="url(#glow)">
+        <path d="M 0,350 Q -5,240 0,130 Q 4,65 0,0" fill="none" stroke="#00ff41" stroke-width="4" opacity="0.8"/>
+        <line x1="-4" y1="300" x2="4" y2="300" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-5" y1="250" x2="3" y2="250" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-3" y1="200" x2="5" y2="200" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-4" y1="150" x2="4" y2="150" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-2" y1="100" x2="6" y2="100" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-3" y1="50" x2="5" y2="50" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <path d="M 0,0 Q -45,-12 -75,-2" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q -35,-24 -60,-20" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q -25,-38 -45,-45" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q 45,-12 75,-2" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 35,-24 60,-20" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q 25,-38 45,-45" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q -5,-45 0,-70" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 5,-45 0,-70" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+      </g>
+      <g id="palm4" transform="translate(1470, 540)" opacity="0.45" filter="url(#glow)">
+        <path d="M 0,330 Q 6,225 2,120 Q -1,60 0,0" fill="none" stroke="#00ff41" stroke-width="4" opacity="0.8"/>
+        <line x1="-4" y1="280" x2="4" y2="280" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-5" y1="230" x2="3" y2="230" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-3" y1="180" x2="5" y2="180" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-4" y1="130" x2="4" y2="130" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <line x1="-2" y1="80" x2="6" y2="80" stroke="#00ff41" stroke-width="1.5" opacity="0.6"/>
+        <path d="M 0,0 Q -40,-10 -70,-1" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q -32,-22 -55,-18" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q 40,-10 70,-1" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 32,-22 55,-18" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+        <path d="M 0,0 Q -4,-42 0,-65" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.7"/>
+        <path d="M 0,0 Q 4,-42 0,-65" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.6"/>
+      </g>
+      
+      <g id="particles" opacity="0.8">
+        <circle cx="300" cy="200" r="2" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="600" cy="150" r="1.5" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="1300" cy="180" r="2" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="3.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="1600" cy="220" r="1.5" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="2.8s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="800" cy="300" r="1" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.2;0.9;0.2" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="1100" cy="280" r="1.5" fill="#00ff41" filter="url(#glow)">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="3.2s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+    </svg>
+
     <div id="overlay" onclick="startSession()">
         <h1 style="font-size: 5rem; margin-bottom:0; text-shadow: 0 0 20px var(--jungle-green);">START</h1>
         <p style="color: var(--jungle-green); letter-spacing: 4px; font-family: 'Orbitron';">INITIALIZE SYSTEM</p>
@@ -300,7 +431,7 @@ HTML_TEMPLATE = """
     <div id="toast">SYSTEM READY</div>
 
     <div class="container">
-        <h1>CYBER<span style="color:#fff">JUNGLE</span></h1>
+        <h1>K7_<span style="color:#fff">floresta</span></h1>
 
         <div id="player-deck">
             <div id="status-light"></div>
