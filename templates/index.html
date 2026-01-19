@@ -8,22 +8,116 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        /* Garante que o SVG fique no fundo e o corpo transparente */
+        body { background: transparent !important; }
+        #bg-svg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            z-index: -10; object-fit: cover;
+        }
+    </style>
 </head>
 <body>
 
-    <div id="bg-layer"></div>
+    <svg id="bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="strongGlow">
+          <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="roadFade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0" />
+          <stop offset="20%" style="stop-color:#00ff41;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#00ff41;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      
+      <rect width="1920" height="1080" fill="#000000"/>
 
-    <div id="overlay" onclick="startSession()">
-        <h1 style="font-size: 5rem; margin-bottom:0; text-shadow: 0 0 20px var(--jungle-green);">START</h1>
-        <p style="color: var(--jungle-green); letter-spacing: 4px; font-family: 'Orbitron';">INITIALIZE SYSTEM</p>
+      <g id="stars" fill="#FFF" opacity="0.8">
+         <circle cx="200" cy="200" r="1.5" opacity="0.8"/><circle cx="500" cy="100" r="1" opacity="0.6"/>
+         <circle cx="1500" cy="150" r="1.5" opacity="0.8"/><circle cx="1200" cy="300" r="1" opacity="0.5"/>
+      </g>
+
+      <g id="mountains" opacity="0.5" transform="translate(0, 540)" filter="url(#glow)">
+         <path d="M 0,0 L 200,-150 L 400,-50 L 600,-200 L 960,-50 L 1320,-200 L 1520,-50 L 1720,-150 L 1920,0" 
+               fill="none" stroke="#00ff41" stroke-width="2" />
+         <path d="M 200,-150 L 200,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+         <path d="M 600,-200 L 600,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+         <path d="M 1320,-200 L 1320,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+      </g>
+
+      <g id="roadGrid" filter="url(#glow)">
+        <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
+        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <g stroke="#00ff41" stroke-width="2" opacity="0.7">
+            <line x1="0" y1="1050" x2="1920" y2="1050" />
+            <line x1="220" y1="900" x2="1700" y2="900" />
+            <line x1="450" y1="780" x2="1475" y2="780" />
+            <line x1="600" y1="700" x2="1300" y2="700" />
+            <line x1="720" y1="640" x2="1195" y2="640" />
+            <line x1="810" y1="600" x2="1105" y2="600" />
+        </g>
+      </g>
+
+      <defs>
+        <g id="palmAsset">
+            <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
+            <line x1="-6" y1="-50" x2="6" y2="-50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <line x1="-5" y1="-100" x2="5" y2="-100" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <line x1="-4" y1="-150" x2="4" y2="-150" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <line x1="-3" y1="-200" x2="3" y2="-200" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <line x1="-2" y1="-250" x2="2" y2="-250" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <line x1="-2" y1="-300" x2="2" y2="-300" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+            <g transform="translate(0, -400)">
+                <path d="M 0,0 Q -60,-20 -120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q -50,-40 -100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q -30,-60 -60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q 60,-20 120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q 50,-40 100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q 30,-60 60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
+                <path d="M 0,0 Q 0,-70 0,-110" fill="none" stroke="#00ff41" stroke-width="3"/>
+            </g>
+        </g>
+      </defs>
+
+      <g transform="translate(320, 900) scale(1.0)" filter="url(#glow)"><use href="#palmAsset" /></g>
+      <g transform="translate(1600, 900) scale(1.0) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
+      <g transform="translate(586, 750) scale(0.6)" filter="url(#glow)"><use href="#palmAsset" /></g>
+      <g transform="translate(1334, 750) scale(0.6) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
+    </svg>
+
+    <div id="lobby-screen">
+        <div class="lobby-card">
+            <div class="lobby-title">K7_SYSTEM</div>
+            <input type="text" id="usernameInput" class="lobby-input" placeholder="USER NICKNAME" maxlength="15">
+            <input type="text" id="roomInput" class="lobby-input" placeholder="ROOM NAME" maxlength="15">
+            <input type="password" id="passInput" class="lobby-input" placeholder="ACCESS KEY (OPTIONAL)">
+            <button class="btn-enter" onclick="joinRoom()">ENTER SESSION</button>
+            <p id="lobby-error" style="color: #ff0055; margin-top: 15px; font-family:'Orbitron'; font-size: 0.8rem; display:none;"></p>
+        </div>
     </div>
+
     <div id="toast">SYSTEM READY</div>
 
     <div class="container" id="mainContainer">
         
         <div class="deck-header">
             <h1>K7_<span style="color:#fff">floresta</span></h1>
-            <button class="btn-minimize" onclick="toggleMiniMode()" title="Toggle Mini-Player">_</button>
+            <div class="room-info">
+                ROOM: <span id="displayRoomName" class="room-name">...</span>
+                <button class="btn-minimize" onclick="toggleMiniMode()" title="Mini Mode">_</button>
+            </div>
         </div>
 
         <div id="player-deck">
@@ -33,7 +127,7 @@
 
         <div class="sliders-area">
             <div class="progress-container">
-                <span style="font-size: 0.7rem; margin-bottom: -5px;">TRACK PROGRESS</span>
+                <span style="font-size: 0.7rem;">TRACK PROGRESS</span>
                 <input type="range" id="timeSlider" min="0" max="100" value="0" step="1" oninput="handleSeek(this.value)">
             </div>
             <div class="volume-container">
@@ -44,24 +138,30 @@
 
         <div class="input-group">
             <input type="text" id="linkInput" placeholder="> INSERT YOUTUBE DATA LINK..." onkeypress="if(event.key==='Enter') addLink()">
-            <button class="btn btn-insert" onclick="addLink()">LOAD</button>
+            <button class="btn-insert" onclick="addLink()">LOAD</button>
         </div>
 
         <div class="controls">
-            <button class="btn btn-ctrl" onclick="sendControl('playpause')">⏯ PLAY/PAUSE</button>
-            <button class="btn btn-ctrl" onclick="sendControl('next')">⏭ NEXT</button>
-            <button class="btn btn-ctrl" onclick="sendControl('shuffle')">🔀 MIX</button>
+            <button class="btn-ctrl" onclick="sendControl('playpause')">⏯ PLAY/PAUSE</button>
+            <button class="btn-ctrl" onclick="sendControl('next')">⏭ NEXT</button>
+            <button class="btn-ctrl" onclick="sendControl('shuffle')">🔀 MIX</button>
             <label class="btn cyber-check">
                 <input type="checkbox" id="autoDjCheck" onchange="toggleDj()" checked> 🤖 AUTO-DJ
             </label>
         </div>
 
-        <ul id="playlist"></ul>
+        <div class="lists-container">
+            <ul id="playlist"></ul>
+            
+            <ul id="user-list">
+                <li style="background:var(--jungle-green); color:#000; font-weight:bold; justify-content:center;">USERS ONLINE</li>
+                </ul>
+        </div>
 
         <div class="sync-area">
-            <button class="btn btn-sync btn-pull" onclick="requestSync()">⬇️ RE-SYNC</button>
+            <button class="btn-sync btn-pull" onclick="requestSync()">⬇️ RE-SYNC</button>
             <div style="color: #444; font-size: 0.7rem; font-family: 'Orbitron';">HEARTBEAT: ACTIVE</div>
-            <button class="btn btn-sync btn-force" onclick="masterSync()">⬆️ MASTER</button>
+            <button class="btn-sync btn-force" onclick="masterSync()">⬆️ MASTER</button>
         </div>
     </div>
 
@@ -80,6 +180,36 @@
         var ignoreUpdates = false; 
         var isDraggingSlider = false;
 
+        // --- LÓGICA DE LOGIN (LOBBY) ---
+        function joinRoom() {
+            let user = document.getElementById('usernameInput').value;
+            let room = document.getElementById('roomInput').value;
+            let pass = document.getElementById('passInput').value;
+
+            if(!user || !room) {
+                document.getElementById('lobby-error').innerText = "Please enter Nickname and Room Name";
+                document.getElementById('lobby-error').style.display = 'block';
+                return;
+            }
+
+            // Envia dados de login
+            socket.emit('join_room_event', {username: user, room: room, password: pass});
+        }
+
+        socket.on('error_msg', (msg) => {
+            let err = document.getElementById('lobby-error');
+            err.innerText = msg;
+            err.style.display = 'block';
+        });
+
+        socket.on('login_success', (data) => {
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            document.getElementById('displayRoomName').innerText = data.room;
+            if(isReady) player.unMute();
+        });
+
+        // --- YOUTUBE API ---
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
 
@@ -92,7 +222,8 @@
         }
         
         function onReady() { 
-            isReady = true; socket.emit('request_sync');
+            isReady = true; 
+            // Nota: Não pedimos sync aqui, esperamos o login
             setInterval(() => {
                 if(!isReady) return;
                 try {
@@ -110,7 +241,6 @@
         }
 
         function onStateChange(e) { if(e.data === 0) socket.emit('video_ended'); }
-        function startSession() { document.getElementById('overlay').style.display = 'none'; if(isReady) player.unMute(); }
         function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
         
         function toggleMiniMode() { document.getElementById('mainContainer').classList.toggle('minimized'); }
@@ -121,13 +251,18 @@
             setTimeout(() => isDraggingSlider = false, 1000);
         }
 
+        // --- SOCKET EVENTOS ---
         socket.on('heartbeat', processState);
         socket.on('update_state', processState);
         socket.on('notification', (msg) => showToast(msg));
 
         function processState(state) {
+            if(!state) return;
             ignoreUpdates = true;
+            
             renderPlaylist(state);
+            renderUserList(state.users);
+            
             document.getElementById('autoDjCheck').checked = state.auto_dj_enabled;
             let light = document.getElementById('status-light');
             if(light) light.className = state.is_playing ? 'playing' : 'paused';
@@ -176,6 +311,7 @@
         }
         function toggleDj() { socket.emit('toggle_autodj', document.getElementById('autoDjCheck').checked); }
         
+        // --- RENDERIZADORES ---
         function renderPlaylist(state) {
             let list = document.getElementById('playlist');
             list.innerHTML = '';
@@ -184,11 +320,37 @@
                 let isActive = (i === state.current_video_index);
                 let isPlaying = isActive && state.is_playing;
                 li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
+                
                 let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
+                let addedBy = v.added_by ? `<div style="font-size:0.6rem; color:#666; margin-top:2px;">ADDED BY: ${v.added_by}</div>` : '';
+                
                 let reelsHtml = `<div class="k7-reels"><svg class="reel-svg"><use href="#gear-icon"></use></svg><svg class="reel-svg"><use href="#gear-icon"></use></svg></div>`;
-                li.innerHTML = `<div class="k7-label-area"><img src="${v.thumbnail || ''}" class="k7-label-img"></div>${reelsHtml}<div class="k7-info"><span class="k7-title">${i+1}. ${v.title}</span><span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span></div>${btn}`;
+                
+                li.innerHTML = `
+                    <div class="k7-label-area"><img src="${v.thumbnail || ''}" class="k7-label-img"></div>
+                    ${reelsHtml}
+                    <div class="k7-info">
+                        <span class="k7-title">${i+1}. ${v.title}</span>
+                        ${addedBy}
+                        <span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span>
+                    </div>
+                    ${btn}
+                `;
                 list.appendChild(li);
             });
+        }
+
+        function renderUserList(users) {
+            let list = document.getElementById('user-list');
+            let header = '<li style="background:var(--jungle-green); color:#000; font-weight:bold; justify-content:center;">USERS ONLINE</li>';
+            list.innerHTML = header;
+            if(users) {
+                users.forEach(u => {
+                    let li = document.createElement('li');
+                    li.innerText = u;
+                    list.appendChild(li);
+                });
+            }
         }
     </script>
 </body>

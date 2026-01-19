@@ -1,9 +1,8 @@
 import os
 import time
 import random
-import threading
-from flask import Flask, render_template, url_for # Importante: render_template
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from yt_dlp import YoutubeDL
 
 # ==========================================
@@ -14,145 +13,283 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'aurora-secret-key')
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='gevent')
 
 # ==========================================
-# 2. ESTADO GLOBAL
+# 2. GESTÃO DE ESTADO (MULTI-SALAS)
 # ==========================================
-room_state = {
-    'playlist': [], 'current_video_index': 0, 'is_playing': False,        
-    'anchor_time': 0, 'server_start_time': 0, 'auto_dj_enabled': True     
-}
+
+# Estrutura: rooms[room_id] = { ... estado da sala ... }
+rooms = {}
+
+# Mapeia ID do socket -> { 'room': '...', 'username': '...' }
+sid_map = {}
+
+def init_room_state(password):
+    """Cria o estado inicial de uma nova sala"""
+    return {
+        'password': password,
+        'playlist': [],             
+        'current_video_index': 0,   
+        'is_playing': False,        
+        'anchor_time': 0,           
+        'server_start_time': 0,     
+        'auto_dj_enabled': True,
+        'users': [] # Lista de nomes (Strings)
+    }
 
 # ==========================================
-# 3. ROTAS (Agora muito mais simples)
+# 3. ROTAS
 # ==========================================
 @app.route('/')
 def index():
-    # O Flask procura automaticamente por 'index.html' dentro da pasta 'templates/'
     return render_template('index.html')
 
 # ==========================================
-# 4. LÓGICA DE BACKEND (HELPER FUNCTIONS)
+# 4. LÓGICA AUXILIAR (Mixes & AutoDJ)
 # ==========================================
+
 def extract_info_smart(url):
+    """Extrai info do YouTube (Suporta Vídeo Único, Mix e Playlist)"""
     try:
-        ydl_opts = {'quiet': True, 'extract_flat': True, 'noplaylist': False, 'playlistend': 20}
+        ydl_opts = {
+            'quiet': True, 
+            'extract_flat': True, # Rápido (só metadados)
+            'noplaylist': False, 
+            'playlistend': 20 # Limite de segurança
+        }
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            detected_items = []
+            detected = []
+            
+            # Caso Playlist/Mix
             if 'entries' in info:
                 for entry in info['entries']:
-                    if entry.get('id') and entry.get('title'):
-                        detected_items.append({'id': entry['id'], 'title': entry['title'], 'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"})
+                    if entry.get('id'):
+                        detected.append({
+                            'id': entry['id'], 
+                            'title': entry.get('title', 'Unknown'), 
+                            'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
+                        })
+            # Caso Vídeo Único
             else:
-                detected_items.append({'id': info['id'], 'title': info['title'], 'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"})
-            return detected_items
+                detected.append({
+                    'id': info['id'], 
+                    'title': info.get('title', 'Unknown'), 
+                    'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+                })
+            return detected
     except Exception as e:
-        print(f"Erro: {e}")
+        print(f"Erro yt-dlp: {e}")
         return None
 
-def find_recommendation(last_video_title):
+def find_recommendation(last_title):
+    """Auto-DJ"""
     try:
         ydl_opts = {'quiet': True, 'default_search': 'ytsearch', 'noplaylist': True, 'extract_flat': True}
-        query = f"{last_video_title} related music"
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch5:{query}", download=False)
+            info = ydl.extract_info(f"{last_title} music", download=False)
             if 'entries' in info and len(info['entries']) > 0:
-                rec = random.choice(info['entries'])
-                return {'id': rec['id'], 'title': f"📻 Auto: {rec['title']}", 'thumbnail': f"https://i.ytimg.com/vi/{rec['id']}/hqdefault.jpg"}
+                rec = random.choice(info['entries']) # Pega um aleatório dos resultados
+                return {
+                    'id': rec['id'], 
+                    'title': f"📻 Auto: {rec['title']}", 
+                    'thumbnail': f"https://i.ytimg.com/vi/{rec['id']}/hqdefault.jpg"
+                }
         return None
     except: return None
 
-def get_broadcast_packet():
-    s = room_state.copy()
-    s['server_now'] = time.time()
-    return s
+def get_room_packet(room_id):
+    """Monta o pacote de dados para enviar para a sala"""
+    if room_id not in rooms: return None
+    state = rooms[room_id].copy()
+    state['server_now'] = time.time()
+    del state['password'] # Nunca envia a senha pro frontend
+    return state
 
+# Loop de Heartbeat (Atualizado para iterar por todas as salas ativas)
 def heartbeat_loop():
     while True:
         socketio.sleep(10)
-        socketio.emit('heartbeat', get_broadcast_packet())
+        # Convertemos keys() para list() para evitar erro se uma sala for deletada durante o loop
+        active_rooms = list(rooms.keys())
+        for r_id in active_rooms:
+            socketio.emit('heartbeat', get_room_packet(r_id), to=r_id)
 
 socketio.start_background_task(heartbeat_loop)
 
 # ==========================================
 # 5. EVENTOS SOCKET.IO
 # ==========================================
+
+@socketio.on('join_room_event')
+def handle_join(data):
+    username = data.get('username')
+    room_id = data.get('room')
+    password = data.get('password')
+
+    if not username or not room_id:
+        return emit('error_msg', "Preencha Nome e Sala!")
+
+    # Cria sala se não existir
+    if room_id not in rooms:
+        rooms[room_id] = init_room_state(password)
+    else:
+        # Se existir, confere a senha (se houver senha definida)
+        if rooms[room_id]['password'] and rooms[room_id]['password'] != password:
+            return emit('error_msg', "Senha Incorreta!")
+
+    # Login Sucesso
+    join_room(room_id)
+    
+    # Registra usuário no mapa global e na sala
+    sid_map[request.sid] = {'room': room_id, 'username': username}
+    if username not in rooms[room_id]['users']:
+        rooms[room_id]['users'].append(username)
+
+    emit('login_success', {'room': room_id, 'username': username})
+    emit('update_state', get_room_packet(room_id), to=room_id)
+    emit('notification', f"🟢 {username} conectou.", to=room_id)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if request.sid in sid_map:
+        user_data = sid_map[request.sid]
+        room_id = user_data['room']
+        name = user_data['username']
+        
+        del sid_map[request.sid] # Remove do mapa global
+
+        if room_id in rooms:
+            if name in rooms[room_id]['users']:
+                rooms[room_id]['users'].remove(name)
+            
+            emit('notification', f"🔴 {name} saiu.", to=room_id)
+            emit('update_state', get_room_packet(room_id), to=room_id)
+
+            # Auto-Delete: Se não sobrou ninguém, apaga a sala da memória
+            if len(rooms[room_id]['users']) == 0:
+                print(f"🧹 Sala vazia deletada: {room_id}")
+                del rooms[room_id]
+
 @socketio.on('add_video')
 def handle_add(url):
-    emit('notification', "SCANNING TAPE...", broadcast=True)
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    username = sid_map[request.sid]['username']
+    
+    emit('notification', "Lendo Fita...", to=room_id)
     items = extract_info_smart(url)
+    
     if items:
-        count = len(items)
-        room_state['playlist'].extend(items)
-        if len(room_state['playlist']) == count:
-            room_state['current_video_index'] = 0
-            room_state['is_playing'] = True
-            room_state['anchor_time'] = 0
-            room_state['server_start_time'] = time.time()
-        emit('update_state', get_broadcast_packet(), broadcast=True)
-        emit('notification', f"📚 {count} FITAS" if count > 1 else f"FITA: {items[0]['title'][:20]}...", broadcast=True)
-    else: emit('notification', "❌ ERRO", broadcast=True)
+        # Marca quem adicionou
+        for item in items:
+            item['added_by'] = username
+            
+        rooms[room_id]['playlist'].extend(items)
+        
+        # Se a lista estava vazia, dá play automático
+        if len(rooms[room_id]['playlist']) == len(items):
+            rooms[room_id]['current_video_index'] = 0
+            rooms[room_id]['is_playing'] = True
+            rooms[room_id]['anchor_time'] = 0
+            rooms[room_id]['server_start_time'] = time.time()
+            
+        emit('update_state', get_room_packet(room_id), to=room_id)
+        msg = f"📚 {len(items)} faixas" if len(items) > 1 else f"Fita: {items[0]['title'][:15]}..."
+        emit('notification', f"{msg} (por {username})", to=room_id)
+    else:
+        emit('notification', "❌ Link Inválido ou Erro", to=request.sid)
 
 @socketio.on('control_action')
 def handle_control(d):
-    room_state['is_playing'] = (d['action'] == 'play')
-    room_state['anchor_time'] = d['time']
-    room_state['server_start_time'] = time.time()
-    emit('update_state', get_broadcast_packet(), broadcast=True)
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    
+    rooms[room_id]['is_playing'] = (d['action'] == 'play')
+    rooms[room_id]['anchor_time'] = d['time']
+    rooms[room_id]['server_start_time'] = time.time()
+    emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('seek_event')
 def handle_seek(d):
-    room_state['anchor_time'] = d['time']
-    room_state['server_start_time'] = time.time()
-    emit('update_state', get_broadcast_packet(), broadcast=True)
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    
+    rooms[room_id]['anchor_time'] = d['time']
+    rooms[room_id]['server_start_time'] = time.time()
+    emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('next_video')
 def handle_next():
-    curr = room_state['current_video_index']
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    room = rooms[room_id]
+    
     has_next = False
-    if curr + 1 < len(room_state['playlist']):
-        room_state['current_video_index'] += 1
+    if room['current_video_index'] + 1 < len(room['playlist']):
+        room['current_video_index'] += 1
         has_next = True
-    elif room_state['auto_dj_enabled'] and len(room_state['playlist']) > 0:
-        last = room_state['playlist'][-1]
+    elif room['auto_dj_enabled'] and len(room['playlist']) > 0:
+        last = room['playlist'][-1]
         rec = find_recommendation(last['title'])
         if rec:
-            room_state['playlist'].append(rec)
-            room_state['current_video_index'] += 1
+            rec['added_by'] = '🤖 Auto-DJ'
+            room['playlist'].append(rec)
+            room['current_video_index'] += 1
             has_next = True
-            emit('notification', "AUTO-DJ LOADING...", broadcast=True)
+            emit('notification', "Auto-DJ inseriu uma fita", to=room_id)
+    
     if has_next:
-        room_state['is_playing'] = True
-        room_state['anchor_time'] = 0
-        room_state['server_start_time'] = time.time()
-        emit('update_state', get_broadcast_packet(), broadcast=True)
+        room['is_playing'] = True
+        room['anchor_time'] = 0
+        room['server_start_time'] = time.time()
+        emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('master_sync_force')
 def handle_master_force(data):
-    room_state['anchor_time'] = data['time']
-    room_state['is_playing'] = data['is_playing']
-    room_state['server_start_time'] = time.time()
-    emit('update_state', get_broadcast_packet(), broadcast=True)
-    emit('notification', "⚠️ MASTER OVERRIDE!", broadcast=True)
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    username = sid_map[request.sid]['username']
+    
+    rooms[room_id]['anchor_time'] = data['time']
+    rooms[room_id]['is_playing'] = data['is_playing']
+    rooms[room_id]['server_start_time'] = time.time()
+    emit('update_state', get_room_packet(room_id), to=room_id)
+    emit('notification', f"⚠️ Sync Forçado por {username}", to=room_id)
 
 @socketio.on('shuffle')
 def handle_shuffle():
-    idx = room_state['current_video_index']
-    if len(room_state['playlist']) > idx + 1:
-        future = room_state['playlist'][idx+1:]
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    
+    idx = rooms[room_id]['current_video_index']
+    playlist = rooms[room_id]['playlist']
+    if len(playlist) > idx + 1:
+        future = playlist[idx+1:]
         random.shuffle(future)
-        room_state['playlist'] = room_state['playlist'][:idx+1] + future
-        emit('update_state', get_broadcast_packet(), broadcast=True)
+        rooms[room_id]['playlist'] = playlist[:idx+1] + future
+        emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('remove')
 def handle_remove(i):
-    if i > room_state['current_video_index']:
-        room_state['playlist'].pop(i)
-        emit('update_state', get_broadcast_packet(), broadcast=True)
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    
+    if i > rooms[room_id]['current_video_index']:
+        rooms[room_id]['playlist'].pop(i)
+        emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('toggle_autodj')
-def handle_tdj(v): room_state['auto_dj_enabled'] = v; emit('update_state', get_broadcast_packet(), broadcast=True)
+def handle_tdj(v): 
+    if request.sid not in sid_map: return
+    room_id = sid_map[request.sid]['room']
+    rooms[room_id]['auto_dj_enabled'] = v
+    emit('update_state', get_room_packet(room_id), to=room_id)
+
 @socketio.on('request_sync')
-def handle_req_sync(): emit('update_state', get_broadcast_packet())
+def handle_req_sync(): 
+    if request.sid in sid_map:
+        room_id = sid_map[request.sid]['room']
+        emit('update_state', get_room_packet(room_id), to=request.sid)
+
 @socketio.on('video_ended')
 def handle_ended(): handle_next()
 
