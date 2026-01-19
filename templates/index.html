@@ -3,125 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K7_floroesta SYNC</title>
+    <title>K7_floresta SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
     <style>
-        /* Garante que nada bloqueie o SVG */
+        /* Ajuste do SVG Inline */
         body { background: transparent !important; }
-        #bg-svg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            z-index: -10; object-fit: cover;
-        }
+        #bg-svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -10; object-fit: cover; }
     </style>
 </head>
 <body>
 
     <svg id="bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
       <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        <filter id="strongGlow">
-          <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        <linearGradient id="roadFade" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0" />
-          <stop offset="20%" style="stop-color:#00ff41;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#00ff41;stop-opacity:1" />
-        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      
       <rect width="1920" height="1080" fill="#000000"/>
-
-      <g id="stars" fill="#FFF" opacity="0.8">
-         <circle cx="200" cy="200" r="1.5" opacity="0.8"/>
-         <circle cx="500" cy="100" r="1" opacity="0.6"/>
-         <circle cx="1500" cy="150" r="1.5" opacity="0.8"/>
-         <circle cx="1200" cy="300" r="1" opacity="0.5"/>
-         <circle cx="900" cy="50" r="1.5" opacity="0.9"/>
-      </g>
-
-      <g id="mountains" opacity="0.5" transform="translate(0, 540)" filter="url(#glow)">
-         <path d="M 0,0 L 200,-150 L 400,-50 L 600,-200 L 960,-50 L 1320,-200 L 1520,-50 L 1720,-150 L 1920,0" 
-               fill="none" stroke="#00ff41" stroke-width="2" />
-         <path d="M 200,-150 L 200,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
-         <path d="M 600,-200 L 600,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
-         <path d="M 1320,-200 L 1320,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
-      </g>
-
       <g id="roadGrid" filter="url(#glow)">
         <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
-        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <g stroke="#00ff41" stroke-width="2" opacity="0.7">
-            <line x1="0" y1="1050" x2="1920" y2="1050" />
-            <line x1="220" y1="900" x2="1700" y2="900" />
-            <line x1="450" y1="780" x2="1475" y2="780" />
-            <line x1="600" y1="700" x2="1300" y2="700" />
-            <line x1="720" y1="640" x2="1195" y2="640" />
-            <line x1="810" y1="600" x2="1105" y2="600" />
-            <line x1="870" y1="575" x2="1055" y2="575" stroke-width="1.5"/>
-            <line x1="905" y1="560" x2="1020" y2="560" stroke-width="1"/>
-            <line x1="925" y1="550" x2="995" y2="550" stroke-width="1"/>
-            <line x1="940" y1="545" x2="980" y2="545" stroke-width="0.5"/>
-        </g>
+        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
+        <line x1="0" y1="1050" x2="1920" y2="1050" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="220" y1="900" x2="1700" y2="900" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="450" y1="780" x2="1475" y2="780" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
       </g>
-
-      <defs>
-        <g id="palmAsset">
-            <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
-            <line x1="-6" y1="-50" x2="6" y2="-50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-5" y1="-100" x2="5" y2="-100" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-4" y1="-150" x2="4" y2="-150" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-3" y1="-200" x2="3" y2="-200" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-2" y1="-250" x2="2" y2="-250" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-2" y1="-300" x2="2" y2="-300" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <g transform="translate(0, -400)">
-                <path d="M 0,0 Q -60,-20 -120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q -50,-40 -100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q -30,-60 -60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 60,-20 120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 50,-40 100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 30,-60 60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 0,-70 0,-110" fill="none" stroke="#00ff41" stroke-width="3"/>
-            </g>
-        </g>
-      </defs>
-
-      <g transform="translate(320, 900) scale(1.0)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(1600, 900) scale(1.0) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(586, 750) scale(0.6)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(1334, 750) scale(0.6) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(764, 650) scale(0.35)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(1156, 650) scale(0.35) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
     </svg>
+
     <div id="overlay" onclick="startSession()">
         <h1 style="font-size: 5rem; margin-bottom:0; text-shadow: 0 0 20px var(--jungle-green);">START</h1>
         <p style="color: var(--jungle-green); letter-spacing: 4px; font-family: 'Orbitron';">INITIALIZE SYSTEM</p>
     </div>
-    
     <div id="toast">SYSTEM READY</div>
 
-    <div class="container">
-        <h1>K7_<span style="color:#fff">florosta</span></h1>
+    <div class="container" id="mainContainer">
+        
+        <div class="deck-header">
+            <h1>K7_<span style="color:#fff">floresta</span></h1>
+            <button class="btn-minimize" onclick="toggleMiniMode()" title="Toggle Mini-Player">_</button>
+        </div>
 
         <div id="player-deck">
             <div id="status-light"></div>
             <div id="player-wrapper"><div id="player"></div></div>
+        </div>
+
+        <div class="sliders-area">
+            <div class="progress-container">
+                <span style="font-size: 0.7rem; margin-bottom: -5px;">TRACK PROGRESS</span>
+                <input type="range" id="timeSlider" min="0" max="100" value="0" step="1" oninput="handleSeek(this.value)">
+            </div>
+            <div class="volume-container">
+                <span style="font-size: 0.7rem;">VOL</span>
+                <input type="range" id="volSlider" min="0" max="100" value="100" oninput="setVolume(this.value)">
+            </div>
         </div>
 
         <div class="input-group">
@@ -130,27 +66,26 @@
         </div>
 
         <div class="controls">
-            <button class="btn btn-ctrl" onclick="sendControl('playpause')">⏯ EXECUTE</button>
-            <button class="btn btn-ctrl" onclick="sendControl('next')">⏭ NEXT TRACK</button>
-            <button class="btn btn-ctrl" onclick="sendControl('shuffle')">🔀 RANDOMIZE</button>
+            <button class="btn btn-ctrl" onclick="sendControl('playpause')">⏯ PLAY/PAUSE</button>
+            <button class="btn btn-ctrl" onclick="sendControl('next')">⏭ NEXT</button>
+            <button class="btn btn-ctrl" onclick="sendControl('shuffle')">🔀 MIX</button>
             <label class="btn cyber-check">
-                <input type="checkbox" id="autoDjCheck" onchange="toggleDj()" checked> 
-                🤖 AUTO-DJ
+                <input type="checkbox" id="autoDjCheck" onchange="toggleDj()" checked> 🤖 AUTO-DJ
             </label>
         </div>
 
         <ul id="playlist"></ul>
 
         <div class="sync-area">
-            <button class="btn btn-sync btn-pull" onclick="requestSync()">⬇️ RE-SYNC DATA</button>
+            <button class="btn btn-sync btn-pull" onclick="requestSync()">⬇️ RE-SYNC</button>
             <div style="color: #444; font-size: 0.7rem; font-family: 'Orbitron';">HEARTBEAT: ACTIVE</div>
-            <button class="btn btn-sync btn-force" onclick="masterSync()">⬆️ MASTER OVERRIDE</button>
+            <button class="btn btn-sync btn-force" onclick="masterSync()">⬆️ MASTER</button>
         </div>
     </div>
 
     <svg style="display: none;">
         <symbol id="gear-icon" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor" opacity="0.3"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor" opacity="0.3"/>
             <path d="M12 4V2M12 20v2M4 12H2m20 0h-2m-2.17-5.83l-1.42-1.42M17.59 17.59l-1.42-1.42M6.41 6.41L5 5m1.41 12.59L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
         </symbol>
@@ -161,6 +96,7 @@
         var player, isReady = false;
         var lastCalculatedTime = 0; 
         var ignoreUpdates = false; 
+        var isDraggingSlider = false; // Impede que o slider pule enquanto você arrasta
 
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
@@ -174,12 +110,25 @@
         }
         
         function onReady() { 
-            isReady = true; socket.emit('request_sync');
+            isReady = true; 
+            socket.emit('request_sync');
+            
+            // Loop Local (Espião)
             setInterval(() => {
-                if(!isReady || ignoreUpdates) return;
+                if(!isReady) return;
+                
                 try {
                     let t = player.getCurrentTime();
-                    if(Math.abs(t - lastCalculatedTime) > 4 && player.getPlayerState() !== 3) { 
+                    let d = player.getDuration();
+                    
+                    // Atualiza o slider visualmente se não estiver arrastando
+                    if(d > 0 && !isDraggingSlider) {
+                        document.getElementById('timeSlider').max = d;
+                        document.getElementById('timeSlider').value = t;
+                    }
+
+                    // Seek Detection (Se arrastou na barra do youtube nativa, se existisse)
+                    if(!ignoreUpdates && Math.abs(t - lastCalculatedTime) > 4 && player.getPlayerState() !== 3) { 
                         socket.emit('seek_event', {time: t}); lastCalculatedTime = t; 
                     }
                 } catch(e){}
@@ -189,6 +138,31 @@
         function onStateChange(e) { if(e.data === 0) socket.emit('video_ended'); }
         function startSession() { document.getElementById('overlay').style.display = 'none'; if(isReady) player.unMute(); }
         function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
+
+        // --- NOVAS FUNÇÕES DE CONTROLE ---
+        
+        function toggleMiniMode() {
+            document.getElementById('mainContainer').classList.toggle('minimized');
+        }
+
+        function setVolume(val) {
+            if(isReady) player.setVolume(val);
+        }
+
+        function handleSeek(val) {
+            isDraggingSlider = true; // Pausa atualização automática
+            // Debounce ou enviar apenas no 'change' (soltar o mouse) seria melhor, mas 'input' é mais responsivo
+            // Aqui enviamos apenas localmente até soltar, ou enviamos direto?
+            // Vamos fazer simples: seek local visual, envia evento no 'change' (não implementado no input type range padrão html facilmente sem listeners extras)
+            // Para simplicidade: Ao soltar, o YouTube sync vai pegar a mudança de tempo drástica.
+            if(isReady) {
+                player.seekTo(val, true);
+                socket.emit('seek_event', {time: val});
+            }
+            setTimeout(() => isDraggingSlider = false, 1000);
+        }
+
+        // --- SYNC CORE ---
 
         socket.on('heartbeat', processState);
         socket.on('update_state', processState);
