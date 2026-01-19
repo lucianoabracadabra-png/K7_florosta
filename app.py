@@ -47,37 +47,49 @@ def index():
 # ==========================================
 
 def extract_info_smart(url):
-    """Extrai info do YouTube (Suporta Vídeo Único, Mix e Playlist)"""
+    """Extrai info do YouTube (Corrigido para Links Únicos + Playlists)"""
     try:
         ydl_opts = {
-            'quiet': True, 
-            'extract_flat': True, # Rápido (só metadados)
-            'noplaylist': False, 
-            'playlistend': 20 # Limite de segurança
+            'quiet': True,
+            # 'in_playlist' garante que vídeos únicos sejam lidos completamente,
+            # enquanto playlists continuam rápidas.
+            'extract_flat': 'in_playlist', 
+            'noplaylist': False,
+            'playlistend': 20,
+            'ignoreerrors': True # Evita crash se um vídeo da lista falhar
         }
+
         with YoutubeDL(ydl_opts) as ydl:
+            # force_generic_extractor=False ajuda a identificar corretamente o YouTube
             info = ydl.extract_info(url, download=False)
             detected = []
-            
-            # Caso Playlist/Mix
+
+            # 1. Caso seja Playlist ou Mix (tem a chave 'entries')
             if 'entries' in info:
+                print(f"📂 Playlist detectada: {info.get('title')}")
                 for entry in info['entries']:
-                    if entry.get('id'):
+                    # Em playlists flat, as vezes o entry vem incompleto, validamos:
+                    if entry and entry.get('id') and entry.get('title'):
                         detected.append({
-                            'id': entry['id'], 
-                            'title': entry.get('title', 'Unknown'), 
+                            'id': entry['id'],
+                            'title': entry['title'],
                             'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                         })
-            # Caso Vídeo Único
+            
+            # 2. Caso seja Vídeo Único (não tem 'entries', é o próprio info)
             else:
-                detected.append({
-                    'id': info['id'], 
-                    'title': info.get('title', 'Unknown'), 
-                    'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
-                })
+                if info.get('id') and info.get('title'):
+                    print(f"🎬 Vídeo único detectado: {info.get('title')}")
+                    detected.append({
+                        'id': info['id'],
+                        'title': info['title'],
+                        'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+                    })
+            
             return detected
+
     except Exception as e:
-        print(f"Erro yt-dlp: {e}")
+        print(f"❌ Erro no yt-dlp: {e}")
         return None
 
 def find_recommendation(last_title):
