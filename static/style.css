@@ -20,8 +20,18 @@ body {
 }
 
 #bg-layer {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: -10; object-fit: cover; pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -10;
+    /* AQUI ESTÁ A MUDANÇA: Usamos o seu arquivo */
+    background-image: url('palmeiras.svg'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
 }
 
 /* OVERLAYS */

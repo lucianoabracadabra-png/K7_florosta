@@ -6,30 +6,12 @@
     <title>K7_floresta SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        /* Ajuste do SVG Inline */
-        body { background: transparent !important; }
-        #bg-svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -10; object-fit: cover; }
-    </style>
 </head>
 <body>
 
-    <svg id="bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect width="1920" height="1080" fill="#000000"/>
-      <g id="roadGrid" filter="url(#glow)">
-        <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
-        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/>
-        <line x1="0" y1="1050" x2="1920" y2="1050" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="220" y1="900" x2="1700" y2="900" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="450" y1="780" x2="1475" y2="780" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-      </g>
-    </svg>
+    <div id="bg-layer"></div>
 
     <div id="overlay" onclick="startSession()">
         <h1 style="font-size: 5rem; margin-bottom:0; text-shadow: 0 0 20px var(--jungle-green);">START</h1>
@@ -85,7 +67,7 @@
 
     <svg style="display: none;">
         <symbol id="gear-icon" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor" opacity="0.3"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor" opacity="0.3"/>
             <path d="M12 4V2M12 20v2M4 12H2m20 0h-2m-2.17-5.83l-1.42-1.42M17.59 17.59l-1.42-1.42M6.41 6.41L5 5m1.41 12.59L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
         </symbol>
@@ -96,7 +78,7 @@
         var player, isReady = false;
         var lastCalculatedTime = 0; 
         var ignoreUpdates = false; 
-        var isDraggingSlider = false; // Impede que o slider pule enquanto você arrasta
+        var isDraggingSlider = false;
 
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
@@ -110,24 +92,16 @@
         }
         
         function onReady() { 
-            isReady = true; 
-            socket.emit('request_sync');
-            
-            // Loop Local (Espião)
+            isReady = true; socket.emit('request_sync');
             setInterval(() => {
                 if(!isReady) return;
-                
                 try {
                     let t = player.getCurrentTime();
                     let d = player.getDuration();
-                    
-                    // Atualiza o slider visualmente se não estiver arrastando
                     if(d > 0 && !isDraggingSlider) {
                         document.getElementById('timeSlider').max = d;
                         document.getElementById('timeSlider').value = t;
                     }
-
-                    // Seek Detection (Se arrastou na barra do youtube nativa, se existisse)
                     if(!ignoreUpdates && Math.abs(t - lastCalculatedTime) > 4 && player.getPlayerState() !== 3) { 
                         socket.emit('seek_event', {time: t}); lastCalculatedTime = t; 
                     }
@@ -138,31 +112,14 @@
         function onStateChange(e) { if(e.data === 0) socket.emit('video_ended'); }
         function startSession() { document.getElementById('overlay').style.display = 'none'; if(isReady) player.unMute(); }
         function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
-
-        // --- NOVAS FUNÇÕES DE CONTROLE ---
         
-        function toggleMiniMode() {
-            document.getElementById('mainContainer').classList.toggle('minimized');
-        }
-
-        function setVolume(val) {
-            if(isReady) player.setVolume(val);
-        }
-
+        function toggleMiniMode() { document.getElementById('mainContainer').classList.toggle('minimized'); }
+        function setVolume(val) { if(isReady) player.setVolume(val); }
         function handleSeek(val) {
-            isDraggingSlider = true; // Pausa atualização automática
-            // Debounce ou enviar apenas no 'change' (soltar o mouse) seria melhor, mas 'input' é mais responsivo
-            // Aqui enviamos apenas localmente até soltar, ou enviamos direto?
-            // Vamos fazer simples: seek local visual, envia evento no 'change' (não implementado no input type range padrão html facilmente sem listeners extras)
-            // Para simplicidade: Ao soltar, o YouTube sync vai pegar a mudança de tempo drástica.
-            if(isReady) {
-                player.seekTo(val, true);
-                socket.emit('seek_event', {time: val});
-            }
+            isDraggingSlider = true; 
+            if(isReady) { player.seekTo(val, true); socket.emit('seek_event', {time: val}); }
             setTimeout(() => isDraggingSlider = false, 1000);
         }
-
-        // --- SYNC CORE ---
 
         socket.on('heartbeat', processState);
         socket.on('update_state', processState);
@@ -172,7 +129,6 @@
             ignoreUpdates = true;
             renderPlaylist(state);
             document.getElementById('autoDjCheck').checked = state.auto_dj_enabled;
-
             let light = document.getElementById('status-light');
             if(light) light.className = state.is_playing ? 'playing' : 'paused';
 
@@ -182,13 +138,9 @@
                     let url = player.getVideoUrl();
                     if(!url.includes(vid.id)) player.loadVideoById(vid.id);
                 }
-
                 let pState = player.getPlayerState();
-                if(state.is_playing) {
-                    if(pState !== 1 && pState !== 3) player.playVideo();
-                } else {
-                    if(pState === 1) player.pauseVideo();
-                }
+                if(state.is_playing) { if(pState !== 1 && pState !== 3) player.playVideo(); } 
+                else { if(pState === 1) player.pauseVideo(); }
 
                 let targetTime = state.anchor_time;
                 if(state.is_playing) {
@@ -196,7 +148,6 @@
                     targetTime = state.anchor_time + timePassedOnServer;
                 }
                 lastCalculatedTime = targetTime;
-
                 let diff = Math.abs(player.getCurrentTime() - targetTime);
                 if(diff > 2.5) player.seekTo(targetTime, true);
             }
@@ -233,27 +184,9 @@
                 let isActive = (i === state.current_video_index);
                 let isPlaying = isActive && state.is_playing;
                 li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
-                
                 let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
-                
-                let reelsHtml = `
-                    <div class="k7-reels">
-                        <svg class="reel-svg"><use href="#gear-icon"></use></svg>
-                        <svg class="reel-svg"><use href="#gear-icon"></use></svg>
-                    </div>
-                `;
-
-                li.innerHTML = `
-                    <div class="k7-label-area">
-                        <img src="${v.thumbnail || 'https://via.placeholder.com/120x70?text=No+Image'}" class="k7-label-img">
-                    </div>
-                    ${reelsHtml}
-                    <div class="k7-info">
-                        <span class="k7-title">${i+1}. ${v.title}</span>
-                        <span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span>
-                    </div>
-                    ${btn}
-                `;
+                let reelsHtml = `<div class="k7-reels"><svg class="reel-svg"><use href="#gear-icon"></use></svg><svg class="reel-svg"><use href="#gear-icon"></use></svg></div>`;
+                li.innerHTML = `<div class="k7-label-area"><img src="${v.thumbnail || ''}" class="k7-label-img"></div>${reelsHtml}<div class="k7-info"><span class="k7-title">${i+1}. ${v.title}</span><span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span></div>${btn}`;
                 list.appendChild(li);
             });
         }
