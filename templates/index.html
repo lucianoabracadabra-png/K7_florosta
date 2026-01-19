@@ -201,6 +201,31 @@
             if(!state) return;
             ignoreUpdates = true; // Bloqueia o espião local
             
+            // Isso aqui faz o Grid andar quando está tocando
+            try {
+                // 1. Pega o objeto que carrega o SVG
+                let svgObj = document.getElementById('bg-layer'); 
+                
+                // 2. Tenta acessar o conteúdo interno dele
+                let svgDoc = svgObj.contentDocument; 
+                
+                if(svgDoc) {
+                    // 3. Busca o grupo da estrada lá dentro
+                    let road = svgDoc.getElementById('roadGrid'); 
+                    
+                    // 4. Liga/Desliga a classe .moving baseada no play
+                    if(road) {
+                        if(state.is_playing) {
+                            road.classList.add('moving');
+                        } else {
+                            road.classList.remove('moving');
+                        }
+                    }
+                }
+            } catch(e) {
+                // Ignora erros caso o SVG ainda não tenha carregado totalmente
+            }
+            
             renderPlaylist(state);
             renderUserList(state.users);
             document.getElementById('autoDjCheck').checked = state.auto_dj_enabled;

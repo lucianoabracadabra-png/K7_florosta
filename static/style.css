@@ -31,8 +31,9 @@ body {
 /* Camada de fundo */
 #bg-layer {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: -10; object-fit: cover; pointer-events: none;
-    /* background-image: url('palmeiras.svg'); background-size: cover; */
+    z-index: -10; 
+    /* O estilo agora é aplicado ao elemento OBJECT no HTML, não background-image */
+    pointer-events: none;
 }
 
 /* Efeito Scanlines (TV Antiga) */
@@ -155,29 +156,43 @@ h1 {
 .volume-container { width: 120px; }
 
 input[type=range] {
-    -webkit-appearance: none; width: 100%; background: transparent; margin: 8px 0;
+    -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0;
 }
 input[type=range]:focus { outline: none; }
 
-/* Trilho Neon */
+/* TRILHO (Chrome/Safari/Edge) */
 input[type=range]::-webkit-slider-runnable-track {
-    width: 100%; height: 4px; cursor: pointer;
-    background: rgba(0, 255, 65, 0.2); /* Verde translúcido */
+    width: 100%; height: 6px; cursor: pointer;
+    background: #111; /* Fundo preto para contraste */
     border: 1px solid var(--jungle-green);
-    border-radius: 2px;
-    box-shadow: 0 0 5px rgba(0, 255, 65, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 0 5px var(--jungle-green); /* Glow no trilho */
 }
 
-/* Botão Neon */
+/* BOTÃO (Chrome/Safari/Edge) */
 input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    height: 16px; width: 16px; border-radius: 50%;
-    background: #000; border: 2px solid var(--jungle-green);
-    cursor: pointer; margin-top: -7px;
-    box-shadow: 0 0 10px var(--jungle-green);
+    height: 18px; width: 18px; border-radius: 50%;
+    background: var(--jungle-green); /* Verde Sólido */
+    border: 2px solid #fff; /* Borda branca pra destacar */
+    cursor: pointer;
+    -webkit-appearance: none; margin-top: -7px;
+    box-shadow: 0 0 15px var(--jungle-green); /* Glow forte no botão */
     transition: transform 0.1s;
 }
-input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); background: var(--jungle-green); }
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* TRILHO (Firefox) */
+input[type=range]::-moz-range-track {
+    width: 100%; height: 6px; cursor: pointer;
+    background: #111; border: 1px solid var(--jungle-green);
+    border-radius: 4px;
+}
+/* BOTÃO (Firefox) */
+input[type=range]::-moz-range-thumb {
+    height: 18px; width: 18px; border: 2px solid #fff;
+    border-radius: 50%; background: var(--jungle-green);
+    cursor: pointer; box-shadow: 0 0 15px var(--jungle-green);
+}
 
 /* --- INPUTS & BOTOES --- */
 .input-group { display: flex; margin-bottom: 20px; border: 1px solid var(--jungle-green); }
