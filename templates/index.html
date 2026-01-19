@@ -3,32 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K7_florosta SYNC</title> <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <title>K7_florosta SYNC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>body { background: transparent !important; } #bg-svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -10; object-fit: cover; }</style>
+    <style>body { background: transparent !important; }</style>
 </head>
 <body>
 
-    <svg id="bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect width="1920" height="1080" fill="#000000"/>
-      <g id="stars" fill="#FFF" opacity="0.8"><circle cx="200" cy="200" r="1.5" opacity="0.8"/><circle cx="500" cy="100" r="1" opacity="0.6"/><circle cx="1500" cy="150" r="1.5" opacity="0.8"/></g>
-      <g id="mountains" opacity="0.5" transform="translate(0, 540)" filter="url(#glow)">
-         <path d="M 0,0 L 200,-150 L 400,-50 L 600,-200 L 960,-50 L 1320,-200 L 1520,-50 L 1720,-150 L 1920,0" fill="none" stroke="#00ff41" stroke-width="2" />
-      </g>
-      <g id="roadGrid" filter="url(#glow)">
-        <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
-        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="0" y1="1050" x2="1920" y2="1050" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="220" y1="900" x2="1700" y2="900" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="450" y1="780" x2="1475" y2="780" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-      </g>
-    </svg>
+    <object id="bg-layer" type="image/svg+xml" data="{{ url_for('static', filename='palmeiras2.svg') }}"></object>
 
     <div id="lobby-screen">
         <div class="lobby-card">
@@ -49,7 +32,7 @@
             <h1>K7_<span style="color:#fff">florosta</span></h1>
             <div class="room-info">
                 ROOM: <span id="displayRoomName" class="room-name">...</span>
-                <button class="btn-minimize" onclick="toggleMiniMode()">_</button>
+                <button class="btn-minimize" onclick="toggleMiniMode()" title="Mini Mode">_</button>
             </div>
         </div>
 
@@ -112,9 +95,9 @@
         var player, isReady = false;
         var lastCalculatedTime = 0; 
         var ignoreUpdates = false; 
-        var isDraggingSlider = false; // Flag para impedir pulos
+        var isDraggingSlider = false;
 
-        // --- LOGIN ---
+        // --- LÓGICA DE LOGIN ---
         function joinRoom() {
             let user = document.getElementById('usernameInput').value.trim();
             let room = document.getElementById('roomInput').value.trim();
@@ -149,26 +132,18 @@
                 try {
                     let t = player.getCurrentTime();
                     let d = player.getDuration();
-                    
-                    // Só atualiza o visual se NÃO estiver arrastando
                     if(d > 0 && !isDraggingSlider) {
                         document.getElementById('timeSlider').max = d;
                         document.getElementById('timeSlider').value = t;
-                    }
-                    // Detecção de Seek Manual (pela barra nativa ou bug)
-                    if(!ignoreUpdates && Math.abs(t - lastCalculatedTime) > 5 && player.getPlayerState() !== 3) { 
-                        // Ignora pequenos saltos
                     }
                 } catch(e){}
             }, 1000);
         }
 
-        // CORREÇÃO: Evita que login dispare "Next Video"
         function onStateChange(e) { 
-            if(e.data === 0) { // 0 = Ended
+            if(e.data === 0) { 
                 let duration = player.getDuration();
                 let current = player.getCurrentTime();
-                // Só envia ended se realmente estiver no final (menos de 2s restando)
                 if (duration > 0 && (duration - current) < 2) {
                     socket.emit('video_ended'); 
                 }
@@ -178,54 +153,36 @@
         function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
         function toggleMiniMode() { document.getElementById('mainContainer').classList.toggle('minimized'); }
         function setVolume(val) { if(isReady) player.setVolume(val); }
-
-        // --- LÓGICA DO SLIDER (SEPARADA) ---
-        function updateSeekVisual(val) {
-            isDraggingSlider = true; // Trava atualizações do servidor
-        }
+        function updateSeekVisual(val) { isDraggingSlider = true; }
         function commitSeek(val) {
-            if(isReady) { 
-                player.seekTo(val, true); 
-                socket.emit('seek_event', {time: val}); 
-            }
-            // Solta a trava depois de um tempinho pra evitar glitch
+            if(isReady) { player.seekTo(val, true); socket.emit('seek_event', {time: val}); }
             setTimeout(() => isDraggingSlider = false, 1500); 
         }
 
-        // --- SOCKET HANDLER (BLINDADO) ---
+        // --- SOCKET & ANIMAÇÃO ---
         socket.on('heartbeat', processState);
         socket.on('update_state', processState);
         socket.on('notification', (msg) => showToast(msg));
 
         function processState(state) {
             if(!state) return;
-            ignoreUpdates = true; // Bloqueia o espião local
+            ignoreUpdates = true;
             
-            // Isso aqui faz o Grid andar quando está tocando
+            // --- ANIMAÇÃO DO BG ---
             try {
-                // 1. Pega o objeto que carrega o SVG
-                let svgObj = document.getElementById('bg-layer'); 
-                
-                // 2. Tenta acessar o conteúdo interno dele
-                let svgDoc = svgObj.contentDocument; 
-                
+                let svgObj = document.getElementById('bg-layer');
+                let svgDoc = svgObj.contentDocument; // Acessa o SVG externo
                 if(svgDoc) {
-                    // 3. Busca o grupo da estrada lá dentro
-                    let road = svgDoc.getElementById('roadGrid'); 
-                    
-                    // 4. Liga/Desliga a classe .moving baseada no play
+                    let road = svgDoc.getElementById('roadGrid'); // Pega o grupo da estrada
+                    // O arquivo SVG precisa ter o CSS .moving { animation... } dentro dele
                     if(road) {
-                        if(state.is_playing) {
-                            road.classList.add('moving');
-                        } else {
-                            road.classList.remove('moving');
-                        }
+                        if(state.is_playing) road.classList.add('moving');
+                        else road.classList.remove('moving');
                     }
                 }
-            } catch(e) {
-                // Ignora erros caso o SVG ainda não tenha carregado totalmente
-            }
-            
+            } catch(e) {}
+            // ----------------------
+
             renderPlaylist(state);
             renderUserList(state.users);
             document.getElementById('autoDjCheck').checked = state.auto_dj_enabled;
@@ -235,20 +192,12 @@
 
             if(isReady) {
                 let vid = state.playlist[state.current_video_index];
-                
-                // CORREÇÃO: Check de ID mais robusto para evitar reload
                 if(vid) {
-                    let currentData = player.getVideoData(); // Pega info direta do player
+                    let currentData = player.getVideoData();
                     let curId = currentData ? currentData.video_id : "";
-                    
-                    // Só carrega se o ID for diferente
-                    if (curId !== vid.id) {
-                        console.log("Loading new video:", vid.id);
-                        player.loadVideoById(vid.id);
-                    }
+                    if (curId !== vid.id) player.loadVideoById(vid.id);
                 }
 
-                // Sincronia de Play/Pause
                 let pState = player.getPlayerState();
                 if(state.is_playing) { 
                     if(pState !== 1 && pState !== 3) player.playVideo(); 
@@ -256,26 +205,18 @@
                     if(pState === 1) player.pauseVideo(); 
                 }
 
-                // Sincronia de Tempo (Matemática)
                 let targetTime = state.anchor_time;
                 if(state.is_playing) {
                     let timePassedOnServer = state.server_now - state.server_start_time;
                     targetTime = state.anchor_time + timePassedOnServer;
                 }
-                
                 lastCalculatedTime = targetTime;
-
-                // Só pula se a diferença for gritante (> 2.5s) E se não estiver arrastando
                 let diff = Math.abs(player.getCurrentTime() - targetTime);
-                if(diff > 2.5 && !isDraggingSlider) {
-                    console.log("Resyncing time...", diff);
-                    player.seekTo(targetTime, true);
-                }
+                if(diff > 2.5 && !isDraggingSlider) player.seekTo(targetTime, true);
             }
             setTimeout(() => ignoreUpdates = false, 1500);
         }
 
-        // --- COMANDOS ---
         function addLink() {
             let url = document.getElementById('linkInput').value;
             if(url) { showToast("DECODING..."); socket.emit('add_video', url); document.getElementById('linkInput').value = ''; }
@@ -296,7 +237,6 @@
         }
         function toggleDj() { socket.emit('toggle_autodj', document.getElementById('autoDjCheck').checked); }
         
-        // --- RENDERIZADORES ---
         function renderPlaylist(state) {
             let list = document.getElementById('playlist');
             list.innerHTML = '';
