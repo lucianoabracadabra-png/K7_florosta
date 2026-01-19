@@ -2,54 +2,111 @@
   <defs>
     <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    
-    <clipPath id="roadMask">
-        <path d="M 960 540 L 1920 1080 L 0 1080 Z" />
-    </clipPath>
+    <filter id="cometGlow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feFlood flood-color="#e0ffff" result="glowColor"/><feComposite in="glowColor" in2="coloredBlur" operator="in" result="coloredGlow"/><feMerge><feMergeNode in="coloredGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+
+    <clipPath id="roadMask"><path d="M 960 540 L 1920 1080 L 0 1080 Z" /></clipPath>
 
     <g id="palmAsset">
-        <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
-        <line x1="-6" y1="-50" x2="6" y2="-50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="-5" y1="-100" x2="5" y2="-100" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="-4" y1="-150" x2="4" y2="-150" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="-3" y1="-200" x2="3" y2="-200" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="-2" y1="-250" x2="2" y2="-250" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <line x1="-2" y1="-300" x2="2" y2="-300" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-        <g transform="translate(0, -400)">
-            <path d="M 0,0 Q -60,-20 -120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q -50,-40 -100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q -30,-60 -60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q 60,-20 120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q 50,-40 100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q 30,-60 60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-            <path d="M 0,0 Q 0,-70 0,-110" fill="none" stroke="#00ff41" stroke-width="3"/>
+        <g stroke="#cd7f32" opacity="0.9">
+             <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke-width="6"/>
+             <line x1="-6" y1="-50" x2="6" y2="-50" stroke-width="2" opacity="0.7"/>
+             <line x1="-5" y1="-100" x2="5" y2="-100" stroke-width="2" opacity="0.7"/>
+             <line x1="-4" y1="-150" x2="4" y2="-150" stroke-width="2" opacity="0.7"/>
+             <line x1="-3" y1="-200" x2="3" y2="-200" stroke-width="2" opacity="0.7"/>
+             <line x1="-2" y1="-250" x2="2" y2="-250" stroke-width="2" opacity="0.7"/>
+             <line x1="-2" y1="-300" x2="2" y2="-300" stroke-width="2" opacity="0.7"/>
+        </g>
+        <g transform="translate(0, -400)" stroke="#00ff41" fill="none" stroke-width="3">
+            <path d="M 0,0 Q -60,-20 -120,10"/>
+            <path d="M 0,0 Q -50,-40 -100,-20"/>
+            <path d="M 0,0 Q -30,-60 -60,-80"/>
+            <path d="M 0,0 Q 60,-20 120,10"/>
+            <path d="M 0,0 Q 50,-40 100,-20"/>
+            <path d="M 0,0 Q 30,-60 60,-80"/>
+            <path d="M 0,0 Q 0,-70 0,-110"/>
         </g>
     </g>
 
+    <g id="cometAsset" filter="url(#cometGlow)">
+        <linearGradient id="cometTailGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#e0ffff;stop-opacity:0" />
+            <stop offset="100%" style="stop-color:#e0ffff;stop-opacity:0.8" />
+        </linearGradient>
+        <path d="M -150,0 L 0,0" stroke="url(#cometTailGrad)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="0" cy="0" r="5" fill="#fff" />
+    </g>
+
     <style>
+      /* Animação da Estrada */
       @keyframes drive {
         0% { transform: translateY(0) scale(1); opacity: 0; }
-        10% { opacity: 0.8; } /* Aparece suave */
-        100% { transform: translateY(400px) scale(3); opacity: 0; } /* Cresce muito mais */
+        10% { opacity: 0.8; }
+        100% { transform: translateY(400px) scale(3); opacity: 0; }
       }
       
+      /* [NOVO] Animação de Piscar Estrelas */
+      @keyframes twinkle {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1.2); }
+      }
+
+      /* [NOVO] Animação do Cometa (Passa a cada 25 segundos) */
+      @keyframes flyby {
+        0% { transform: translate(-200px, 100px) rotate(15deg); opacity: 1; } /* Começa fora na esquerda */
+        10% { transform: translate(2100px, 400px) rotate(15deg); opacity: 0; } /* Cruza a tela em ~2.5s */
+        100% { transform: translate(2100px, 400px) rotate(15deg); opacity: 0; } /* Espera fora da tela */
+      }
+      
+      /* Configuração inicial da Estrada */
       #stripes1, #stripes2 {
         opacity: 0.8;
-        transform-origin: 960px 540px; /* Ponto de fuga exato */
+        transform-origin: 960px 540px;
       }
+
+      /* --- GATILHOS DE PLAY (.moving) --- */
       
+      /* Liga a estrada */
       .moving #stripes1, .moving #stripes2 {
-        animation: drive 3s linear infinite; /* Mais lento e suave */
+        animation: drive 3s linear infinite;
       }
       .moving #stripes2 { animation-delay: -1.5s; }
+
+      /* [NOVO] Liga o pisca-pisca das estrelas */
+      .moving #stars circle {
+         /* Piscar aleatório: Duração variável entre 2s e 4s */
+         animation: twinkle 3s ease-in-out infinite alternate;
+      }
+      /* Delays para não piscarem juntos */
+      .moving #stars circle:nth-child(odd) { animation-delay: 0.5s; animation-duration: 2.5s; }
+      .moving #stars circle:nth-child(3n) { animation-delay: 1s; animation-duration: 4s; }
+
+      /* [NOVO] Liga o Cometa */
+      .moving #cometInstance {
+          /* Roda a cada 25s, demora 2.5s para cruzar a tela */
+          animation: flyby 25s linear infinite;
+      }
+
     </style>
   </defs>
   
   <rect width="1920" height="1080" fill="#000000"/>
 
-  <g id="stars" fill="#FFF" opacity="0.8">
-     <circle cx="200" cy="200" r="1.5" opacity="0.8"/><circle cx="500" cy="100" r="1" opacity="0.6"/>
-     <circle cx="1500" cy="150" r="1.5" opacity="0.8"/><circle cx="1200" cy="300" r="1" opacity="0.5"/><circle cx="900" cy="50" r="1.5" opacity="0.9"/>
+  <g id="stars" fill="#FFF">
+     <circle cx="200" cy="200" r="1.5" opacity="0.8"/>
+     <circle cx="500" cy="100" r="1" opacity="0.6"/>
+     <circle cx="1500" cy="150" r="1.5" opacity="0.8"/>
+     <circle cx="1200" cy="300" r="1" opacity="0.5"/>
+     <circle cx="900" cy="50" r="1.5" opacity="0.9"/>
+     <circle cx="100" cy="400" r="1" opacity="0.4"/>
+     <circle cx="350" cy="50" r="1.2" opacity="0.7"/>
+     <circle cx="1700" cy="350" r="1" opacity="0.5"/>
+     <circle cx="1350" cy="50" r="1.3" opacity="0.8"/>
+     <circle cx="650" cy="250" r="0.8" opacity="0.4"/>
+     <circle cx="1800" cy="100" r="1.1" opacity="0.6"/>
+  </g>
+
+  <g id="cometInstance" transform="translate(-200, 100)" opacity="0">
+      <use href="#cometAsset" />
   </g>
 
   <g id="mountains" opacity="0.5" transform="translate(0, 540)" filter="url(#glow)">
@@ -58,35 +115,18 @@
   </g>
 
   <g id="roadGrid" filter="url(#glow)">
-    
     <g id="static-grid">
         <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
-        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        
-        <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/> <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/> <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
     </g>
-
     <g clip-path="url(#roadMask)">
         <g id="stripes1" stroke="#00ff41" stroke-width="2" opacity="0.7">
-            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/>
-            <line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/>
-            <line x1="0" y1="620" x2="1920" y2="620" /> 
-            <line x1="0" y1="680" x2="1920" y2="680" /> 
-            <line x1="0" y1="760" x2="1920" y2="760" /> 
-            <line x1="0" y1="880" x2="1920" y2="880" /> 
+            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/><line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/><line x1="0" y1="620" x2="1920" y2="620" /> <line x1="0" y1="680" x2="1920" y2="680" /> <line x1="0" y1="760" x2="1920" y2="760" /> <line x1="0" y1="880" x2="1920" y2="880" /> 
         </g>
-        
         <g id="stripes2" stroke="#00ff41" stroke-width="2" opacity="0.7">
-            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/>
-            <line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/>
-            <line x1="0" y1="620" x2="1920" y2="620" /> 
-            <line x1="0" y1="680" x2="1920" y2="680" /> 
-            <line x1="0" y1="760" x2="1920" y2="760" /> 
-            <line x1="0" y1="880" x2="1920" y2="880" /> 
+            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/><line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/><line x1="0" y1="620" x2="1920" y2="620" /> <line x1="0" y1="680" x2="1920" y2="680" /> <line x1="0" y1="760" x2="1920" y2="760" /> <line x1="0" y1="880" x2="1920" y2="880" /> 
         </g>
     </g>
   </g>
