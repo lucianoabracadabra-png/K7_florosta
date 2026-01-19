@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K7_floresta SYNC</title>
+    <title>K7_florosta SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
     
@@ -113,7 +113,7 @@
     <div class="container" id="mainContainer">
         
         <div class="deck-header">
-            <h1>K7_<span style="color:#fff">floresta</span></h1>
+            <h1>K7_<span style="color:#fff">florosta</span></h1>
             <div class="room-info">
                 ROOM: <span id="displayRoomName" class="room-name">...</span>
                 <button class="btn-minimize" onclick="toggleMiniMode()" title="Mini Mode">_</button>
@@ -313,32 +313,45 @@
         
         // --- RENDERIZADORES ---
         function renderPlaylist(state) {
-            let list = document.getElementById('playlist');
-            list.innerHTML = '';
-            state.playlist.forEach((v, i) => {
-                let li = document.createElement('li');
-                let isActive = (i === state.current_video_index);
-                let isPlaying = isActive && state.is_playing;
-                li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
+        let list = document.getElementById('playlist');
+        list.innerHTML = '';
+        state.playlist.forEach((v, i) => {
+            let li = document.createElement('li');
+            let isActive = (i === state.current_video_index);
+            let isPlaying = isActive && state.is_playing;
+            
+            li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
+            
+            // Botão X
+            let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
+            
+            // Info de quem adicionou
+            let addedBy = v.added_by ? `ADDED BY: ${v.added_by}` : 'SYSTEM';
+            
+            // Ícone da Roda (SVG)
+            let reelIcon = `<svg class="reel-single"><use href="#gear-icon"></use></svg>`;
+
+            // NOVO LAYOUT: Roda Esq | Centro (Img + Texto) | Roda Dir
+            li.innerHTML = `
+                ${reelIcon}
                 
-                let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
-                let addedBy = v.added_by ? `<div style="font-size:0.6rem; color:#666; margin-top:2px;">ADDED BY: ${v.added_by}</div>` : '';
-                
-                let reelsHtml = `<div class="k7-reels"><svg class="reel-svg"><use href="#gear-icon"></use></svg><svg class="reel-svg"><use href="#gear-icon"></use></svg></div>`;
-                
-                li.innerHTML = `
-                    <div class="k7-label-area"><img src="${v.thumbnail || ''}" class="k7-label-img"></div>
-                    ${reelsHtml}
-                    <div class="k7-info">
-                        <span class="k7-title">${i+1}. ${v.title}</span>
-                        ${addedBy}
-                        <span class="k7-status">${isActive ? (isPlaying ? '▶ ACTIVE' : '⏸ STANDBY') : 'QUEUED'}</span>
+                <div class="k7-center">
+                    <div class="k7-mini-label">
+                        <img src="${v.thumbnail || ''}">
                     </div>
-                    ${btn}
-                `;
-                list.appendChild(li);
-            });
-        }
+                    <span class="k7-title">${i+1}. ${v.title}</span>
+                    <div class="k7-added-by">${addedBy}</div>
+                    <span class="k7-status" style="font-size:0.6rem; color:#666;">
+                        ${isActive ? (isPlaying ? '▶ RUNNING' : '⏸ PAUSED') : 'QUEUED'}
+                    </span>
+                </div>
+                
+                ${reelIcon}
+                ${btn}
+            `;
+            list.appendChild(li);
+        });
+    }
 
         function renderUserList(users) {
             let list = document.getElementById('user-list');
