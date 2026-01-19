@@ -3,107 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K7_florosta SYNC</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <title>K7_florosta SYNC</title> <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
-    <style>
-        /* Garante que o SVG fique no fundo e o corpo transparente */
-        body { background: transparent !important; }
-        #bg-svg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            z-index: -10; object-fit: cover;
-        }
-    </style>
+    <style>body { background: transparent !important; } #bg-svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -10; object-fit: cover; }</style>
 </head>
 <body>
 
     <svg id="bg-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
       <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="strongGlow">
-          <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
-          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <linearGradient id="roadFade" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:#00ff41;stop-opacity:0" />
-          <stop offset="20%" style="stop-color:#00ff41;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#00ff41;stop-opacity:1" />
-        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      
       <rect width="1920" height="1080" fill="#000000"/>
-
-      <g id="stars" fill="#FFF" opacity="0.8">
-         <circle cx="200" cy="200" r="1.5" opacity="0.8"/><circle cx="500" cy="100" r="1" opacity="0.6"/>
-         <circle cx="1500" cy="150" r="1.5" opacity="0.8"/><circle cx="1200" cy="300" r="1" opacity="0.5"/>
-      </g>
-
+      <g id="stars" fill="#FFF" opacity="0.8"><circle cx="200" cy="200" r="1.5" opacity="0.8"/><circle cx="500" cy="100" r="1" opacity="0.6"/><circle cx="1500" cy="150" r="1.5" opacity="0.8"/></g>
       <g id="mountains" opacity="0.5" transform="translate(0, 540)" filter="url(#glow)">
-         <path d="M 0,0 L 200,-150 L 400,-50 L 600,-200 L 960,-50 L 1320,-200 L 1520,-50 L 1720,-150 L 1920,0" 
-               fill="none" stroke="#00ff41" stroke-width="2" />
-         <path d="M 200,-150 L 200,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
-         <path d="M 600,-200 L 600,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
-         <path d="M 1320,-200 L 1320,0" stroke="#00ff41" stroke-width="0.5" opacity="0.3"/>
+         <path d="M 0,0 L 200,-150 L 400,-50 L 600,-200 L 960,-50 L 1320,-200 L 1520,-50 L 1720,-150 L 1920,0" fill="none" stroke="#00ff41" stroke-width="2" />
       </g>
-
       <g id="roadGrid" filter="url(#glow)">
         <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
         <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
         <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
-        <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-        <g stroke="#00ff41" stroke-width="2" opacity="0.7">
-            <line x1="0" y1="1050" x2="1920" y2="1050" />
-            <line x1="220" y1="900" x2="1700" y2="900" />
-            <line x1="450" y1="780" x2="1475" y2="780" />
-            <line x1="600" y1="700" x2="1300" y2="700" />
-            <line x1="720" y1="640" x2="1195" y2="640" />
-            <line x1="810" y1="600" x2="1105" y2="600" />
-        </g>
+        <line x1="0" y1="1050" x2="1920" y2="1050" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="220" y1="900" x2="1700" y2="900" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
+        <line x1="450" y1="780" x2="1475" y2="780" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
       </g>
-
-      <defs>
-        <g id="palmAsset">
-            <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
-            <line x1="-6" y1="-50" x2="6" y2="-50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-5" y1="-100" x2="5" y2="-100" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-4" y1="-150" x2="4" y2="-150" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-3" y1="-200" x2="3" y2="-200" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-2" y1="-250" x2="2" y2="-250" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <line x1="-2" y1="-300" x2="2" y2="-300" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
-            <g transform="translate(0, -400)">
-                <path d="M 0,0 Q -60,-20 -120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q -50,-40 -100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q -30,-60 -60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 60,-20 120,10" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 50,-40 100,-20" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 30,-60 60,-80" fill="none" stroke="#00ff41" stroke-width="3"/>
-                <path d="M 0,0 Q 0,-70 0,-110" fill="none" stroke="#00ff41" stroke-width="3"/>
-            </g>
-        </g>
-      </defs>
-
-      <g transform="translate(320, 900) scale(1.0)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(1600, 900) scale(1.0) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(586, 750) scale(0.6)" filter="url(#glow)"><use href="#palmAsset" /></g>
-      <g transform="translate(1334, 750) scale(0.6) scale(-1, 1)" filter="url(#glow)"><use href="#palmAsset" /></g>
     </svg>
 
     <div id="lobby-screen">
         <div class="lobby-card">
             <div class="lobby-title">K7_SYSTEM</div>
-            <input type="text" id="usernameInput" class="lobby-input" placeholder="USER NICKNAME" maxlength="15">
-            <input type="text" id="roomInput" class="lobby-input" placeholder="ROOM NAME" maxlength="15">
-            <input type="password" id="passInput" class="lobby-input" placeholder="ACCESS KEY (OPTIONAL)">
-            <button class="btn-enter" onclick="joinRoom()">ENTER SESSION</button>
+            <input type="text" id="usernameInput" class="lobby-input" placeholder="NICKNAME" maxlength="12">
+            <input type="text" id="roomInput" class="lobby-input" placeholder="SALA (ROOM)" maxlength="12">
+            <input type="password" id="passInput" class="lobby-input" placeholder="SENHA (OPCIONAL)">
+            <button class="btn-enter" onclick="joinRoom()">ENTRAR</button>
             <p id="lobby-error" style="color: #ff0055; margin-top: 15px; font-family:'Orbitron'; font-size: 0.8rem; display:none;"></p>
         </div>
     </div>
@@ -116,7 +49,7 @@
             <h1>K7_<span style="color:#fff">florosta</span></h1>
             <div class="room-info">
                 ROOM: <span id="displayRoomName" class="room-name">...</span>
-                <button class="btn-minimize" onclick="toggleMiniMode()" title="Mini Mode">_</button>
+                <button class="btn-minimize" onclick="toggleMiniMode()">_</button>
             </div>
         </div>
 
@@ -128,7 +61,9 @@
         <div class="sliders-area">
             <div class="progress-container">
                 <span style="font-size: 0.7rem;">TRACK PROGRESS</span>
-                <input type="range" id="timeSlider" min="0" max="100" value="0" step="1" oninput="handleSeek(this.value)">
+                <input type="range" id="timeSlider" min="0" max="100" value="0" step="1" 
+                       oninput="updateSeekVisual(this.value)" 
+                       onchange="commitSeek(this.value)">
             </div>
             <div class="volume-container">
                 <span style="font-size: 0.7rem;">VOL</span>
@@ -137,7 +72,7 @@
         </div>
 
         <div class="input-group">
-            <input type="text" id="linkInput" placeholder="> INSERT YOUTUBE DATA LINK..." onkeypress="if(event.key==='Enter') addLink()">
+            <input type="text" id="linkInput" placeholder="> INSERT YOUTUBE LINK..." onkeypress="if(event.key==='Enter') addLink()">
             <button class="btn-insert" onclick="addLink()">LOAD</button>
         </div>
 
@@ -152,10 +87,9 @@
 
         <div class="lists-container">
             <ul id="playlist"></ul>
-            
             <ul id="user-list">
                 <li style="background:var(--jungle-green); color:#000; font-weight:bold; justify-content:center;">USERS ONLINE</li>
-                </ul>
+            </ul>
         </div>
 
         <div class="sync-area">
@@ -167,9 +101,9 @@
 
     <svg style="display: none;">
         <symbol id="gear-icon" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="currentColor" opacity="0.3"/>
-            <path d="M12 4V2M12 20v2M4 12H2m20 0h-2m-2.17-5.83l-1.42-1.42M17.59 17.59l-1.42-1.42M6.41 6.41L5 5m1.41 12.59L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.5"/>
+            <path d="M12 2 a10 10 0 0 1 0 20 a10 10 0 0 1 0 -20 M12 7 l3 9 l-8 -4 l10 0 l-8 4 z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
         </symbol>
     </svg>
 
@@ -178,30 +112,17 @@
         var player, isReady = false;
         var lastCalculatedTime = 0; 
         var ignoreUpdates = false; 
-        var isDraggingSlider = false;
+        var isDraggingSlider = false; // Flag para impedir pulos
 
-        // --- LÓGICA DE LOGIN (LOBBY) ---
+        // --- LOGIN ---
         function joinRoom() {
-            let user = document.getElementById('usernameInput').value;
-            let room = document.getElementById('roomInput').value;
+            let user = document.getElementById('usernameInput').value.trim();
+            let room = document.getElementById('roomInput').value.trim();
             let pass = document.getElementById('passInput').value;
-
-            if(!user || !room) {
-                document.getElementById('lobby-error').innerText = "Please enter Nickname and Room Name";
-                document.getElementById('lobby-error').style.display = 'block';
-                return;
-            }
-
-            // Envia dados de login
+            if(!user || !room) return alert("NICKNAME & ROOM REQUIRED");
             socket.emit('join_room_event', {username: user, room: room, password: pass});
         }
-
-        socket.on('error_msg', (msg) => {
-            let err = document.getElementById('lobby-error');
-            err.innerText = msg;
-            err.style.display = 'block';
-        });
-
+        socket.on('error_msg', (msg) => { document.getElementById('lobby-error').innerText = msg; document.getElementById('lobby-error').style.display='block'; });
         socket.on('login_success', (data) => {
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'block';
@@ -223,77 +144,117 @@
         
         function onReady() { 
             isReady = true; 
-            // Nota: Não pedimos sync aqui, esperamos o login
             setInterval(() => {
                 if(!isReady) return;
                 try {
                     let t = player.getCurrentTime();
                     let d = player.getDuration();
+                    
+                    // Só atualiza o visual se NÃO estiver arrastando
                     if(d > 0 && !isDraggingSlider) {
                         document.getElementById('timeSlider').max = d;
                         document.getElementById('timeSlider').value = t;
                     }
-                    if(!ignoreUpdates && Math.abs(t - lastCalculatedTime) > 4 && player.getPlayerState() !== 3) { 
-                        socket.emit('seek_event', {time: t}); lastCalculatedTime = t; 
+                    // Detecção de Seek Manual (pela barra nativa ou bug)
+                    if(!ignoreUpdates && Math.abs(t - lastCalculatedTime) > 5 && player.getPlayerState() !== 3) { 
+                        // Ignora pequenos saltos
                     }
                 } catch(e){}
             }, 1000);
         }
 
-        function onStateChange(e) { if(e.data === 0) socket.emit('video_ended'); }
-        function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
-        
-        function toggleMiniMode() { document.getElementById('mainContainer').classList.toggle('minimized'); }
-        function setVolume(val) { if(isReady) player.setVolume(val); }
-        function handleSeek(val) {
-            isDraggingSlider = true; 
-            if(isReady) { player.seekTo(val, true); socket.emit('seek_event', {time: val}); }
-            setTimeout(() => isDraggingSlider = false, 1000);
+        // CORREÇÃO: Evita que login dispare "Next Video"
+        function onStateChange(e) { 
+            if(e.data === 0) { // 0 = Ended
+                let duration = player.getDuration();
+                let current = player.getCurrentTime();
+                // Só envia ended se realmente estiver no final (menos de 2s restando)
+                if (duration > 0 && (duration - current) < 2) {
+                    socket.emit('video_ended'); 
+                }
+            }
         }
 
-        // --- SOCKET EVENTOS ---
+        function showToast(msg) { let t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 3000); }
+        function toggleMiniMode() { document.getElementById('mainContainer').classList.toggle('minimized'); }
+        function setVolume(val) { if(isReady) player.setVolume(val); }
+
+        // --- LÓGICA DO SLIDER (SEPARADA) ---
+        function updateSeekVisual(val) {
+            isDraggingSlider = true; // Trava atualizações do servidor
+        }
+        function commitSeek(val) {
+            if(isReady) { 
+                player.seekTo(val, true); 
+                socket.emit('seek_event', {time: val}); 
+            }
+            // Solta a trava depois de um tempinho pra evitar glitch
+            setTimeout(() => isDraggingSlider = false, 1500); 
+        }
+
+        // --- SOCKET HANDLER (BLINDADO) ---
         socket.on('heartbeat', processState);
         socket.on('update_state', processState);
         socket.on('notification', (msg) => showToast(msg));
 
         function processState(state) {
             if(!state) return;
-            ignoreUpdates = true;
+            ignoreUpdates = true; // Bloqueia o espião local
             
             renderPlaylist(state);
             renderUserList(state.users);
-            
             document.getElementById('autoDjCheck').checked = state.auto_dj_enabled;
+            
             let light = document.getElementById('status-light');
             if(light) light.className = state.is_playing ? 'playing' : 'paused';
 
             if(isReady) {
                 let vid = state.playlist[state.current_video_index];
+                
+                // CORREÇÃO: Check de ID mais robusto para evitar reload
                 if(vid) {
-                    let url = player.getVideoUrl();
-                    if(!url.includes(vid.id)) player.loadVideoById(vid.id);
+                    let currentData = player.getVideoData(); // Pega info direta do player
+                    let curId = currentData ? currentData.video_id : "";
+                    
+                    // Só carrega se o ID for diferente
+                    if (curId !== vid.id) {
+                        console.log("Loading new video:", vid.id);
+                        player.loadVideoById(vid.id);
+                    }
                 }
-                let pState = player.getPlayerState();
-                if(state.is_playing) { if(pState !== 1 && pState !== 3) player.playVideo(); } 
-                else { if(pState === 1) player.pauseVideo(); }
 
+                // Sincronia de Play/Pause
+                let pState = player.getPlayerState();
+                if(state.is_playing) { 
+                    if(pState !== 1 && pState !== 3) player.playVideo(); 
+                } else { 
+                    if(pState === 1) player.pauseVideo(); 
+                }
+
+                // Sincronia de Tempo (Matemática)
                 let targetTime = state.anchor_time;
                 if(state.is_playing) {
                     let timePassedOnServer = state.server_now - state.server_start_time;
                     targetTime = state.anchor_time + timePassedOnServer;
                 }
+                
                 lastCalculatedTime = targetTime;
+
+                // Só pula se a diferença for gritante (> 2.5s) E se não estiver arrastando
                 let diff = Math.abs(player.getCurrentTime() - targetTime);
-                if(diff > 2.5) player.seekTo(targetTime, true);
+                if(diff > 2.5 && !isDraggingSlider) {
+                    console.log("Resyncing time...", diff);
+                    player.seekTo(targetTime, true);
+                }
             }
             setTimeout(() => ignoreUpdates = false, 1500);
         }
 
+        // --- COMANDOS ---
         function addLink() {
             let url = document.getElementById('linkInput').value;
             if(url) { showToast("DECODING..."); socket.emit('add_video', url); document.getElementById('linkInput').value = ''; }
         }
-
         function sendControl(type) {
             if(!isReady) return;
             if(type === 'playpause') {
@@ -302,7 +263,6 @@
             } else if (type === 'next') socket.emit('next_video');
             else if (type === 'shuffle') socket.emit('shuffle');
         }
-        
         function requestSync() { showToast("SYNCING..."); socket.emit('request_sync'); }
         function masterSync() {
             if(!isReady) return; showToast("OVERRIDING...");
@@ -313,45 +273,34 @@
         
         // --- RENDERIZADORES ---
         function renderPlaylist(state) {
-        let list = document.getElementById('playlist');
-        list.innerHTML = '';
-        state.playlist.forEach((v, i) => {
-            let li = document.createElement('li');
-            let isActive = (i === state.current_video_index);
-            let isPlaying = isActive && state.is_playing;
-            
-            li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
-            
-            // Botão X
-            let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
-            
-            // Info de quem adicionou
-            let addedBy = v.added_by ? `ADDED BY: ${v.added_by}` : 'SYSTEM';
-            
-            // Ícone da Roda (SVG)
-            let reelIcon = `<svg class="reel-single"><use href="#gear-icon"></use></svg>`;
+            let list = document.getElementById('playlist');
+            list.innerHTML = '';
+            state.playlist.forEach((v, i) => {
+                let li = document.createElement('li');
+                let isActive = (i === state.current_video_index);
+                let isPlaying = isActive && state.is_playing;
+                li.className = `k7-tape ${isActive ? 'active' : ''} ${isPlaying ? 'playing' : ''}`;
+                
+                let btn = i > state.current_video_index ? `<button class="btn-remove" onclick="socket.emit('remove', ${i})">✕</button>` : '';
+                let addedBy = v.added_by ? `ADDED BY: ${v.added_by}` : 'SYSTEM';
+                let reelIcon = `<svg class="reel-single"><use href="#gear-icon"></use></svg>`;
 
-            // NOVO LAYOUT: Roda Esq | Centro (Img + Texto) | Roda Dir
-            li.innerHTML = `
-                ${reelIcon}
-                
-                <div class="k7-center">
-                    <div class="k7-mini-label">
-                        <img src="${v.thumbnail || ''}">
+                li.innerHTML = `
+                    ${reelIcon}
+                    <div class="k7-center">
+                        <div class="k7-mini-label"><img src="${v.thumbnail || ''}"></div>
+                        <span class="k7-title">${i+1}. ${v.title}</span>
+                        <div class="k7-added-by">${addedBy}</div>
+                        <span class="k7-status" style="font-size:0.6rem; color:#666;">
+                            ${isActive ? (isPlaying ? '▶ RUNNING' : '⏸ PAUSED') : 'QUEUED'}
+                        </span>
                     </div>
-                    <span class="k7-title">${i+1}. ${v.title}</span>
-                    <div class="k7-added-by">${addedBy}</div>
-                    <span class="k7-status" style="font-size:0.6rem; color:#666;">
-                        ${isActive ? (isPlaying ? '▶ RUNNING' : '⏸ PAUSED') : 'QUEUED'}
-                    </span>
-                </div>
-                
-                ${reelIcon}
-                ${btn}
-            `;
-            list.appendChild(li);
-        });
-    }
+                    ${reelIcon}
+                    ${btn}
+                `;
+                list.appendChild(li);
+            });
+        }
 
         function renderUserList(users) {
             let list = document.getElementById('user-list');
