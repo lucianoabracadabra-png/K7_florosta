@@ -3,6 +3,10 @@
     <filter id="glow"><feGaussianBlur stdDeviation="4" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="strongGlow"><feGaussianBlur stdDeviation="8" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     
+    <clipPath id="roadMask">
+        <path d="M 960 540 L 1920 1080 L 0 1080 Z" />
+    </clipPath>
+
     <g id="palmAsset">
         <path d="M 0,0 Q 5,-100 0,-400" fill="none" stroke="#00ff41" stroke-width="6" opacity="0.9"/>
         <line x1="-6" y1="-50" x2="6" y2="-50" stroke="#00ff41" stroke-width="2" opacity="0.7"/>
@@ -23,23 +27,21 @@
     </g>
 
     <style>
-      /* Animação de Dirigir */
       @keyframes drive {
-        0% { transform: translateY(0) scale(1); opacity: 0.7; }
-        100% { transform: translateY(300px) scale(1.4); opacity: 0; }
+        0% { transform: translateY(0) scale(1); opacity: 0; }
+        10% { opacity: 0.8; } /* Aparece suave */
+        100% { transform: translateY(400px) scale(3); opacity: 0; } /* Cresce muito mais */
       }
       
       #stripes1, #stripes2 {
-        opacity: 0.7;
-        transform-origin: 960px 540px;
-        /* Por padrão, fica parado. A classe 'moving' ativa o movimento */
+        opacity: 0.8;
+        transform-origin: 960px 540px; /* Ponto de fuga exato */
       }
       
-      /* A classe .moving será adicionada pelo seu site quando der PLAY */
       .moving #stripes1, .moving #stripes2 {
-        animation: drive 2s linear infinite;
+        animation: drive 3s linear infinite; /* Mais lento e suave */
       }
-      .moving #stripes2 { animation-delay: -1s; }
+      .moving #stripes2 { animation-delay: -1.5s; }
     </style>
   </defs>
   
@@ -56,17 +58,36 @@
   </g>
 
   <g id="roadGrid" filter="url(#glow)">
-    <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
-    <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-    <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-    <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-    <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
-
-    <g id="stripes1" stroke="#00ff41" stroke-width="2" opacity="0.7">
-        <line x1="0" y1="1050" x2="1920" y2="1050" /> <line x1="220" y1="900" x2="1700" y2="900" /> <line x1="450" y1="780" x2="1475" y2="780" /> <line x1="600" y1="700" x2="1300" y2="700" /> <line x1="720" y1="640" x2="1195" y2="640" /> <line x1="810" y1="600" x2="1105" y2="600" /> <line x1="870" y1="575" x2="1055" y2="575" stroke-width="1.5"/> <line x1="905" y1="560" x2="1020" y2="560" stroke-width="1"/>
+    
+    <g id="static-grid">
+        <line x1="960" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="4" filter="url(#strongGlow)" opacity="1"/>
+        <line x1="0" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        <line x1="1920" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="3" opacity="0.8"/> 
+        
+        <line x1="320" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="640" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="1600" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
+        <line x1="1280" y1="1080" x2="960" y2="540" stroke="#00ff41" stroke-width="1.5" opacity="0.4"/>
     </g>
-    <g id="stripes2" stroke="#00ff41" stroke-width="2" opacity="0.7">
-        <line x1="0" y1="1050" x2="1920" y2="1050" /> <line x1="220" y1="900" x2="1700" y2="900" /> <line x1="450" y1="780" x2="1475" y2="780" /> <line x1="600" y1="700" x2="1300" y2="700" /> <line x1="720" y1="640" x2="1195" y2="640" /> <line x1="810" y1="600" x2="1105" y2="600" /> <line x1="870" y1="575" x2="1055" y2="575" stroke-width="1.5"/> <line x1="905" y1="560" x2="1020" y2="560" stroke-width="1"/>
+
+    <g clip-path="url(#roadMask)">
+        <g id="stripes1" stroke="#00ff41" stroke-width="2" opacity="0.7">
+            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/>
+            <line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/>
+            <line x1="0" y1="620" x2="1920" y2="620" /> 
+            <line x1="0" y1="680" x2="1920" y2="680" /> 
+            <line x1="0" y1="760" x2="1920" y2="760" /> 
+            <line x1="0" y1="880" x2="1920" y2="880" /> 
+        </g>
+        
+        <g id="stripes2" stroke="#00ff41" stroke-width="2" opacity="0.7">
+            <line x1="0" y1="550" x2="1920" y2="550" stroke-width="1"/>
+            <line x1="0" y1="580" x2="1920" y2="580" stroke-width="1"/>
+            <line x1="0" y1="620" x2="1920" y2="620" /> 
+            <line x1="0" y1="680" x2="1920" y2="680" /> 
+            <line x1="0" y1="760" x2="1920" y2="760" /> 
+            <line x1="0" y1="880" x2="1920" y2="880" /> 
+        </g>
     </g>
   </g>
 
