@@ -2,32 +2,39 @@ import os
 import time
 import random
 import secrets
-from collections import Counter
+from collections import Counter, defaultdict
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from yt_dlp import YoutubeDL
 
 # ==========================================
 # 1. CONFIGURAÇÃO
 # ==========================================
 app = Flask(__name__)
-# Gera SECRET_KEY segura se não existir no ambiente
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 socketio = SocketIO(
     app, 
-    cors_allowed_origins=os.environ.get('ALLOWED_ORIGINS', '*'),  # Configure no ambiente
+    cors_allowed_origins=os.environ.get('ALLOWED_ORIGINS', '*'),
     async_mode='gevent'
 )
 
-# Rate Limiting
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per hour"],
-    storage_uri="memory://"
-)
+# Rate Limiting Manual (sem biblioteca externa)
+rate_limits = defaultdict(list)
+
+def check_rate_limit(key, max_requests, window_seconds):
+    """Rate limiter simples em memória"""
+    now = time.time()
+    
+    # Limpa requisições antigas
+    rate_limits[key] = [t for t in rate_limits[key] if now - t < window_seconds]
+    
+    # Verifica se excedeu o limite
+    if len(rate_limits[key]) >= max_requests:
+        return False
+    
+    # Registra esta requisição
+    rate_limits[key].append(now)
+    return True
 
 # ==========================================
 # 2. GESTÃO DE ESTADO (MULTI-SALAS)
@@ -51,7 +58,7 @@ def init_room_state(password):
         'anchor_time': 0,           
         'server_start_time': 0,     
         'auto_dj_enabled': True,
-        'users': [],  # Lista de nomes (Strings)
+        'users': [],
         'created_at': time.time()
     }
 
@@ -70,7 +77,6 @@ def sanitize_url(url):
     """Valida e limpa URLs do YouTube"""
     url = url.strip()
     
-    # Lista branca de domínios permitidos
     allowed_domains = [
         'youtube.com', 'www.youtube.com', 
         'youtu.be', 'm.youtube.com',
@@ -80,7 +86,6 @@ def sanitize_url(url):
     if not any(domain in url for domain in allowed_domains):
         return None
     
-    # Básico: deve começar com http
     if not url.startswith(('http://', 'https://')):
         return None
         
@@ -89,7 +94,7 @@ def sanitize_url(url):
 def extract_info_smart(url):
     """
     Extrai informações de vídeos/playlists do YouTube.
-    CORRIGIDO: Agora funciona com vídeos únicos também.
+    CORRIGIDO: User-Agent e cookies para evitar bloqueio de bot.
     """
     try:
         url = sanitize_url(url)
@@ -97,14 +102,34 @@ def extract_info_smart(url):
             print("❌ URL inválida ou não permitida")
             return None
         
+        # CORREÇÃO PRINCIPAL: Configurações para evitar detecção de bot
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': 'in_playlist',  # CORREÇÃO: Flat apenas em playlists
+            'extract_flat': 'in_playlist',  # Flat apenas em playlists
             'noplaylist': False,
             'playlistend': 20,
             'ignoreerrors': True,
-            'socket_timeout': 15,  # Timeout de 15s
+            'socket_timeout': 20,
+            
+            # ANTI-BOT: Simula navegador real
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],  # Usa múltiplos clients
+                    'player_skip': ['webpage', 'configs'],  # Pula páginas desnecessárias
+                }
+            },
+            
+            # Headers adicionais
+            'http_headers': {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -116,12 +141,11 @@ def extract_info_smart(url):
             
             detected = []
 
-            # CASO 1: É Playlist ou Mix (tem 'entries')
+            # CASO 1: Playlist/Mix (tem 'entries')
             if 'entries' in info and info['entries']:
                 print(f"📂 Playlist/Mix: {info.get('title', 'Sem título')}")
                 for entry in info['entries']:
                     if entry and entry.get('id'):
-                        # Para flat extract, usa title direto
                         title = entry.get('title', 'Sem título')[:MAX_VIDEO_TITLE_LENGTH]
                         detected.append({
                             'id': entry['id'],
@@ -129,7 +153,7 @@ def extract_info_smart(url):
                             'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                         })
 
-            # CASO 2: Vídeo Único (não tem 'entries')
+            # CASO 2: Vídeo Único
             elif info.get('id'):
                 print(f"🎬 Vídeo único: {info.get('title', 'Sem título')}")
                 title = info.get('title', 'Sem título')[:MAX_VIDEO_TITLE_LENGTH]
@@ -151,9 +175,7 @@ def extract_info_smart(url):
         return None
 
 def find_recommendation(room_id):
-    """
-    Auto-DJ inteligente: analisa a playlist da sala e busca algo similar.
-    """
+    """Auto-DJ inteligente baseado nas preferências da sala"""
     try:
         room = rooms[room_id]
         playlist = room['playlist']
@@ -161,37 +183,36 @@ def find_recommendation(room_id):
         if not playlist:
             return None
         
-        # Conta palavras-chave nos títulos da playlist (preferências da sala)
+        # Analisa últimos 10 vídeos para encontrar padrões
         all_words = []
-        for video in playlist[-10:]:  # Últimos 10 vídeos
-            # Remove marcadores do Auto-DJ e palavras comuns
+        for video in playlist[-10:]:
             title = video['title'].replace('📻 Auto:', '').lower()
             words = [w for w in title.split() if len(w) > 3]
             all_words.extend(words)
         
-        # Pega as palavras mais comuns
+        # Monta busca baseada em palavras mais comuns
         if all_words:
             common = Counter(all_words).most_common(3)
             search_term = ' '.join([word for word, _ in common])
         else:
-            # Fallback: usa o último vídeo
             search_term = playlist[-1]['title']
         
         print(f"🎲 Auto-DJ buscando: {search_term}")
         
         ydl_opts = {
             'quiet': True,
-            'default_search': 'ytsearch3',  # Busca 3 resultados
+            'default_search': 'ytsearch3',
             'noplaylist': True,
             'extract_flat': True,
-            'socket_timeout': 10
+            'socket_timeout': 15,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
         
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(search_term, download=False)
             
             if 'entries' in info and info['entries']:
-                # Filtra vídeos já na playlist
                 existing_ids = {v['id'] for v in playlist}
                 candidates = [e for e in info['entries'] if e and e.get('id') not in existing_ids]
                 
@@ -225,23 +246,21 @@ def get_room_packet(room_id):
     
     return state
 
-# Heartbeat melhorado
+# Heartbeat
 def heartbeat_loop():
     while True:
         socketio.sleep(10)
         
-        # Limpa salas antigas vazias (> 1 hora)
+        # Limpa salas vazias antigas (> 1 hora)
         now = time.time()
-        to_delete = []
-        for r_id, room in list(rooms.items()):
-            if len(room['users']) == 0 and (now - room['created_at']) > 3600:
-                to_delete.append(r_id)
+        to_delete = [r_id for r_id, room in list(rooms.items()) 
+                     if len(room['users']) == 0 and (now - room['created_at']) > 3600]
         
         for r_id in to_delete:
             print(f"🧹 Sala expirada deletada: {r_id}")
             del rooms[r_id]
         
-        # Envia heartbeat apenas para salas ativas
+        # Heartbeat apenas para salas ativas
         for r_id in list(rooms.keys()):
             if len(rooms[r_id]['users']) > 0:
                 socketio.emit('heartbeat', get_room_packet(r_id), to=r_id)
@@ -253,9 +272,12 @@ socketio.start_background_task(heartbeat_loop)
 # ==========================================
 
 @socketio.on('join_room_event')
-@limiter.limit("10 per minute")
 def handle_join(data):
-    username = data.get('username', '').strip()[:50]  # Limita tamanho do nome
+    # Rate limit: 10 joins por minuto por IP
+    if not check_rate_limit(f"join_{request.remote_addr}", 10, 60):
+        return emit('error_msg', "Muitas tentativas! Aguarde um momento.")
+    
+    username = data.get('username', '').strip()[:50]
     room_id = data.get('room', '').strip()[:50]
     password = data.get('password', '')
 
@@ -270,11 +292,11 @@ def handle_join(data):
         if rooms[room_id]['password'] and rooms[room_id]['password'] != password:
             return emit('error_msg', "Senha Incorreta!")
         
-        # NOVO: Verifica limite de usuários
+        # Verifica limite de usuários
         if len(rooms[room_id]['users']) >= MAX_ROOM_USERS:
             return emit('error_msg', "Sala Cheia!")
         
-        # NOVO: Verifica nome duplicado
+        # Verifica nome duplicado
         if username in rooms[room_id]['users']:
             return emit('error_msg', f"Nome '{username}' já está em uso nesta sala!")
 
@@ -305,10 +327,13 @@ def handle_disconnect():
             emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('add_video')
-@limiter.limit("20 per minute")
 def handle_add(url):
     if request.sid not in sid_map: 
         return
+    
+    # Rate limit: 20 adds por minuto
+    if not check_rate_limit(f"add_{request.sid}", 20, 60):
+        return emit('notification', "⏱️ Calma! Aguarde alguns segundos.", to=request.sid)
     
     room_id = sid_map[request.sid]['room']
     username = sid_map[request.sid]['username']
@@ -342,7 +367,7 @@ def handle_add(url):
         msg = f"📚 {len(items)} fita(s)" if len(items) > 1 else f"♪ {items[0]['title'][:30]}..."
         emit('notification', f"{msg} (por {username})", to=room_id)
     else:
-        emit('notification', "❌ Link inválido, erro na leitura ou não é YouTube", to=request.sid)
+        emit('notification', "❌ Link inválido ou YouTube bloqueou. Tente outro vídeo.", to=request.sid)
 
 @socketio.on('control_action')
 def handle_control(d):
@@ -371,12 +396,10 @@ def handle_next():
     
     has_next = False
     
-    # Tenta próximo da fila
     if room['current_video_index'] + 1 < len(room['playlist']):
         room['current_video_index'] += 1
         has_next = True
     
-    # Tenta Auto-DJ
     elif room['auto_dj_enabled'] and len(room['playlist']) > 0:
         if len(room['playlist']) < MAX_PLAYLIST_SIZE:
             rec = find_recommendation(room_id)
@@ -406,9 +429,13 @@ def handle_master_force(data):
     emit('notification', f"⚡ Sync forçado por {username}", to=room_id)
 
 @socketio.on('shuffle')
-@limiter.limit("5 per minute")
 def handle_shuffle():
     if request.sid not in sid_map: return
+    
+    # Rate limit: 5 shuffles por minuto
+    if not check_rate_limit(f"shuffle_{request.sid}", 5, 60):
+        return
+    
     room_id = sid_map[request.sid]['room']
     
     idx = rooms[room_id]['current_video_index']
@@ -428,7 +455,6 @@ def handle_remove(i):
     if request.sid not in sid_map: return
     room_id = sid_map[request.sid]['room']
     
-    # Só pode remover músicas futuras
     if i > rooms[room_id]['current_video_index'] and i < len(rooms[room_id]['playlist']):
         removed = rooms[room_id]['playlist'].pop(i)
         emit('update_state', get_room_packet(room_id), to=room_id)
