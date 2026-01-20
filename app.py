@@ -91,20 +91,18 @@ def sanitize_url(url):
         
     return url
 
+import os
+
 def extract_info_smart(url):
     """
-    Estratégia 'Sanitizer': 
-    1. Tenta baixar o link original (Playlist/Mix).
-    2. Se o YouTube bloquear ou der erro de JSON (comum em servidores),
-       LIMPA o link (remove &list=...) e baixa apenas o vídeo único.
+    Tenta baixar usando Cookies para evitar o erro 'Sign in to confirm'.
+    Se não tiver cookies, tenta o modo anônimo (que pode falhar em vídeos +18 ou música).
     """
     
-    # --- FUNÇÃO INTERNA DE LIMPEZA DE URL ---
+    # --- LIMPEZA DE URL ---
     def clean_url_logic(dirty_url):
-        # Transforma "youtube.com/watch?v=ID&list=..." em "youtube.com/watch?v=ID"
         if "v=" in dirty_url:
             try:
-                # Pega tudo depois de v= e corta no primeiro &
                 video_id = dirty_url.split("v=")[1].split("&")[0]
                 return f"https://www.youtube.com/watch?v={video_id}"
             except:
@@ -117,44 +115,43 @@ def extract_info_smart(url):
                 return dirty_url
         return dirty_url
 
-    # Validação básica
     if not url: return None
     url = url.strip()
 
-    # Configuração LEVE (Sem fingir ser iPhone, isso evita bloqueios em Datacenter)
+    # --- CONFIGURAÇÃO ---
     ydl_opts = {
         'quiet': True,
-        'extract_flat': True, # O SEGREDO: Não baixa a página, só lê metadados API
-        'noplaylist': False,  # Tenta aceitar playlist primeiro
+        'extract_flat': True, 
+        'noplaylist': False,
         'playlistend': 20,
         'ignoreerrors': True,
         'no_warnings': True,
         'socket_timeout': 15,
     }
 
-    # --- TENTATIVA 1: URL Original (Tenta pegar o Mix/Playlist) ---
-    print(f"🔄 Tentativa 1 (Link Original): {url}")
+    # SEGREDO: Se o arquivo cookies.txt existir, usa ele!
+    if os.path.exists('cookies.txt'):
+        print("🍪 Cookies detectados! Usando autenticação...")
+        ydl_opts['cookiefile'] = 'cookies.txt'
+    else:
+        print("⚠️ ALERTA: cookies.txt não encontrado. Vídeos de música podem falhar.")
+
+    # --- TENTATIVA 1: Link Original ---
+    print(f"🔄 Tentativa 1 (Original): {url}")
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            # Se retornou dados válidos, processa e devolve
             result = process_results(info)
             if result: return result
     except Exception as e:
-        print(f"⚠️ Tentativa 1 falhou (Provável erro de Tab/JSON): {e}")
+        print(f"⚠️ Tentativa 1 falhou: {e}")
 
-    # --- TENTATIVA 2: URL Sanitizada (Fallback para Vídeo Único) ---
-    # Se chegamos aqui, a playlist falhou. Vamos tentar só o vídeo.
-    
+    # --- TENTATIVA 2: Link Limpo (Só vídeo) ---
     clean = clean_url_logic(url)
-    
-    # Só tenta de novo se a URL limpa for diferente da original
     if clean != url:
-        print(f"✂️ Tentativa 2 (Link Limpo/Solo): {clean}")
+        print(f"✂️ Tentativa 2 (Link Limpo): {clean}")
         try:
-            # Força o modo 'apenas vídeo'
-            ydl_opts['noplaylist'] = True 
-            
+            ydl_opts['noplaylist'] = True
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(clean, download=False)
                 result = process_results(info)
@@ -165,11 +162,9 @@ def extract_info_smart(url):
     return None
 
 def process_results(info):
-    """Auxiliar para formatar o retorno do yt-dlp"""
     if not info: return None
     detected = []
     
-    # CASO 1: Playlist
     if 'entries' in info:
         print(f"📂 Playlist detectada: {info.get('title')}")
         for entry in info['entries']:
@@ -180,7 +175,6 @@ def process_results(info):
                     'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                 })
     
-    # CASO 2: Vídeo Único
     elif info.get('id') and info.get('title'):
         print(f"🎬 Vídeo detectado: {info.get('title')}")
         detected.append({
