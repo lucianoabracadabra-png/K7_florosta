@@ -51,8 +51,9 @@ def extract_info_smart(url):
     try:
         ydl_opts = {
             'quiet': True,
+            # A MÁGICA ESTÁ AQUI:
             # 'in_playlist' garante que vídeos únicos sejam lidos completamente,
-            # enquanto playlists continuam rápidas.
+            # enquanto playlists continuam sendo lidas no modo rápido.
             'extract_flat': 'in_playlist', 
             'noplaylist': False,
             'playlistend': 20,
@@ -78,6 +79,7 @@ def extract_info_smart(url):
             
             # 2. Caso seja Vídeo Único (não tem 'entries', é o próprio info)
             else:
+                # Aqui garantimos que pegamos os dados se não for playlist
                 if info.get('id') and info.get('title'):
                     print(f"🎬 Vídeo único detectado: {info.get('title')}")
                     detected.append({
