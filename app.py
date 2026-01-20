@@ -1,26 +1,45 @@
 import os
 import time
 import random
+import secrets
+from collections import Counter
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from yt_dlp import YoutubeDL
 
 # ==========================================
 # 1. CONFIGURAÇÃO
 # ==========================================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'aurora-secret-key')
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='gevent')
+# Gera SECRET_KEY segura se não existir no ambiente
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins=os.environ.get('ALLOWED_ORIGINS', '*'),  # Configure no ambiente
+    async_mode='gevent'
+)
+
+# Rate Limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per hour"],
+    storage_uri="memory://"
+)
 
 # ==========================================
 # 2. GESTÃO DE ESTADO (MULTI-SALAS)
 # ==========================================
 
-# Estrutura: rooms[room_id] = { ... estado da sala ... }
 rooms = {}
-
-# Mapeia ID do socket -> { 'room': '...', 'username': '...' }
 sid_map = {}
+
+# Limites de segurança
+MAX_PLAYLIST_SIZE = 100
+MAX_ROOM_USERS = 50
+MAX_VIDEO_TITLE_LENGTH = 200
 
 def init_room_state(password):
     """Cria o estado inicial de uma nova sala"""
@@ -32,7 +51,8 @@ def init_room_state(password):
         'anchor_time': 0,           
         'server_start_time': 0,     
         'auto_dj_enabled': True,
-        'users': [] # Lista de nomes (Strings)
+        'users': [],  # Lista de nomes (Strings)
+        'created_at': time.time()
     }
 
 # ==========================================
@@ -43,92 +63,188 @@ def index():
     return render_template('index.html')
 
 # ==========================================
-# 4. LÓGICA AUXILIAR (Mixes & AutoDJ)
+# 4. LÓGICA AUXILIAR
 # ==========================================
+
+def sanitize_url(url):
+    """Valida e limpa URLs do YouTube"""
+    url = url.strip()
+    
+    # Lista branca de domínios permitidos
+    allowed_domains = [
+        'youtube.com', 'www.youtube.com', 
+        'youtu.be', 'm.youtube.com',
+        'music.youtube.com'
+    ]
+    
+    if not any(domain in url for domain in allowed_domains):
+        return None
+    
+    # Básico: deve começar com http
+    if not url.startswith(('http://', 'https://')):
+        return None
+        
+    return url
 
 def extract_info_smart(url):
     """
-    MODO FLASH: Usa extract_flat=True para TUDO.
-    É mais rápido, evita bloqueios de IP e funciona para Vídeo Único e Playlist.
+    Extrai informações de vídeos/playlists do YouTube.
+    CORRIGIDO: Agora funciona com vídeos únicos também.
     """
     try:
-        url = url.strip() # Remove espaços acidentais
+        url = sanitize_url(url)
+        if not url:
+            print("❌ URL inválida ou não permitida")
+            return None
         
         ydl_opts = {
             'quiet': True,
-            'extract_flat': True, # O SEGREDO: Nunca baixa a página, só lê metadados
-            'noplaylist': False,  # Aceita tudo
+            'no_warnings': True,
+            'extract_flat': 'in_playlist',  # CORREÇÃO: Flat apenas em playlists
+            'noplaylist': False,
             'playlistend': 20,
-            'ignoreerrors': True  # Pula vídeos com erro na lista
+            'ignoreerrors': True,
+            'socket_timeout': 15,  # Timeout de 15s
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
-            if not info: return None
+            if not info: 
+                print("❌ yt-dlp não retornou informações")
+                return None
             
             detected = []
 
-            # CASO 1: É Playlist ou Mix (Tem 'entries')
-            if 'entries' in info:
-                print(f"📂 Playlist/Mix detectada: {info.get('title')}")
+            # CASO 1: É Playlist ou Mix (tem 'entries')
+            if 'entries' in info and info['entries']:
+                print(f"📂 Playlist/Mix: {info.get('title', 'Sem título')}")
                 for entry in info['entries']:
-                    # Validação tripla para garantir que o item é válido
-                    if entry and entry.get('id') and entry.get('title'):
+                    if entry and entry.get('id'):
+                        # Para flat extract, usa title direto
+                        title = entry.get('title', 'Sem título')[:MAX_VIDEO_TITLE_LENGTH]
                         detected.append({
                             'id': entry['id'],
-                            'title': entry['title'],
+                            'title': title,
                             'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                         })
 
-            # CASO 2: É Vídeo Único (Não tem 'entries', é o próprio objeto)
-            elif info.get('id') and info.get('title'):
-                print(f"🎬 Vídeo Único detectado: {info.get('title')}")
+            # CASO 2: Vídeo Único (não tem 'entries')
+            elif info.get('id'):
+                print(f"🎬 Vídeo único: {info.get('title', 'Sem título')}")
+                title = info.get('title', 'Sem título')[:MAX_VIDEO_TITLE_LENGTH]
                 detected.append({
                     'id': info['id'],
-                    'title': info['title'],
-                    'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+                    'title': title,
+                    'thumbnail': info.get('thumbnail') or f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
                 })
             
-            # Se a lista estiver vazia, retorna None para disparar o erro no front
-            return detected if detected else None
+            if not detected:
+                print("⚠️ Nenhum vídeo válido encontrado")
+                return None
+                
+            print(f"✅ {len(detected)} vídeo(s) extraído(s)")
+            return detected
 
     except Exception as e:
-        print(f"❌ Erro Crítico: {e}")
+        print(f"❌ Erro em extract_info_smart: {type(e).__name__}: {str(e)}")
         return None
 
-def find_recommendation(last_title):
-    """Auto-DJ"""
+def find_recommendation(room_id):
+    """
+    Auto-DJ inteligente: analisa a playlist da sala e busca algo similar.
+    """
     try:
-        ydl_opts = {'quiet': True, 'default_search': 'ytsearch', 'noplaylist': True, 'extract_flat': True}
+        room = rooms[room_id]
+        playlist = room['playlist']
+        
+        if not playlist:
+            return None
+        
+        # Conta palavras-chave nos títulos da playlist (preferências da sala)
+        all_words = []
+        for video in playlist[-10:]:  # Últimos 10 vídeos
+            # Remove marcadores do Auto-DJ e palavras comuns
+            title = video['title'].replace('📻 Auto:', '').lower()
+            words = [w for w in title.split() if len(w) > 3]
+            all_words.extend(words)
+        
+        # Pega as palavras mais comuns
+        if all_words:
+            common = Counter(all_words).most_common(3)
+            search_term = ' '.join([word for word, _ in common])
+        else:
+            # Fallback: usa o último vídeo
+            search_term = playlist[-1]['title']
+        
+        print(f"🎲 Auto-DJ buscando: {search_term}")
+        
+        ydl_opts = {
+            'quiet': True,
+            'default_search': 'ytsearch3',  # Busca 3 resultados
+            'noplaylist': True,
+            'extract_flat': True,
+            'socket_timeout': 10
+        }
+        
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"{last_title} music", download=False)
-            if 'entries' in info and len(info['entries']) > 0:
-                rec = random.choice(info['entries']) # Pega um aleatório dos resultados
-                return {
-                    'id': rec['id'], 
-                    'title': f"📻 Auto: {rec['title']}", 
-                    'thumbnail': f"https://i.ytimg.com/vi/{rec['id']}/hqdefault.jpg"
-                }
+            info = ydl.extract_info(search_term, download=False)
+            
+            if 'entries' in info and info['entries']:
+                # Filtra vídeos já na playlist
+                existing_ids = {v['id'] for v in playlist}
+                candidates = [e for e in info['entries'] if e and e.get('id') not in existing_ids]
+                
+                if candidates:
+                    rec = random.choice(candidates)
+                    return {
+                        'id': rec['id'],
+                        'title': f"📻 Auto: {rec['title'][:MAX_VIDEO_TITLE_LENGTH]}",
+                        'thumbnail': f"https://i.ytimg.com/vi/{rec['id']}/hqdefault.jpg"
+                    }
+        
         return None
-    except: return None
+        
+    except Exception as e:
+        print(f"⚠️ Auto-DJ falhou: {e}")
+        return None
 
 def get_room_packet(room_id):
     """Monta o pacote de dados para enviar para a sala"""
-    if room_id not in rooms: return None
+    if room_id not in rooms: 
+        return None
+    
     state = rooms[room_id].copy()
     state['server_now'] = time.time()
-    del state['password'] # Nunca envia a senha pro frontend
+    
+    # Remove dados sensíveis
+    if 'password' in state:
+        del state['password']
+    if 'created_at' in state:
+        del state['created_at']
+    
     return state
 
-# Loop de Heartbeat (Atualizado para iterar por todas as salas ativas)
+# Heartbeat melhorado
 def heartbeat_loop():
     while True:
         socketio.sleep(10)
-        # Convertemos keys() para list() para evitar erro se uma sala for deletada durante o loop
-        active_rooms = list(rooms.keys())
-        for r_id in active_rooms:
-            socketio.emit('heartbeat', get_room_packet(r_id), to=r_id)
+        
+        # Limpa salas antigas vazias (> 1 hora)
+        now = time.time()
+        to_delete = []
+        for r_id, room in list(rooms.items()):
+            if len(room['users']) == 0 and (now - room['created_at']) > 3600:
+                to_delete.append(r_id)
+        
+        for r_id in to_delete:
+            print(f"🧹 Sala expirada deletada: {r_id}")
+            del rooms[r_id]
+        
+        # Envia heartbeat apenas para salas ativas
+        for r_id in list(rooms.keys()):
+            if len(rooms[r_id]['users']) > 0:
+                socketio.emit('heartbeat', get_room_packet(r_id), to=r_id)
 
 socketio.start_background_task(heartbeat_loop)
 
@@ -137,10 +253,11 @@ socketio.start_background_task(heartbeat_loop)
 # ==========================================
 
 @socketio.on('join_room_event')
+@limiter.limit("10 per minute")
 def handle_join(data):
-    username = data.get('username')
-    room_id = data.get('room')
-    password = data.get('password')
+    username = data.get('username', '').strip()[:50]  # Limita tamanho do nome
+    room_id = data.get('room', '').strip()[:50]
+    password = data.get('password', '')
 
     if not username or not room_id:
         return emit('error_msg', "Preencha Nome e Sala!")
@@ -149,17 +266,23 @@ def handle_join(data):
     if room_id not in rooms:
         rooms[room_id] = init_room_state(password)
     else:
-        # Se existir, confere a senha (se houver senha definida)
+        # Verifica senha
         if rooms[room_id]['password'] and rooms[room_id]['password'] != password:
             return emit('error_msg', "Senha Incorreta!")
+        
+        # NOVO: Verifica limite de usuários
+        if len(rooms[room_id]['users']) >= MAX_ROOM_USERS:
+            return emit('error_msg', "Sala Cheia!")
+        
+        # NOVO: Verifica nome duplicado
+        if username in rooms[room_id]['users']:
+            return emit('error_msg', f"Nome '{username}' já está em uso nesta sala!")
 
     # Login Sucesso
     join_room(room_id)
     
-    # Registra usuário no mapa global e na sala
     sid_map[request.sid] = {'room': room_id, 'username': username}
-    if username not in rooms[room_id]['users']:
-        rooms[room_id]['users'].append(username)
+    rooms[room_id]['users'].append(username)
 
     emit('login_success', {'room': room_id, 'username': username})
     emit('update_state', get_room_packet(room_id), to=room_id)
@@ -172,7 +295,7 @@ def handle_disconnect():
         room_id = user_data['room']
         name = user_data['username']
         
-        del sid_map[request.sid] # Remove do mapa global
+        del sid_map[request.sid]
 
         if room_id in rooms:
             if name in rooms[room_id]['users']:
@@ -181,28 +304,33 @@ def handle_disconnect():
             emit('notification', f"🔴 {name} saiu.", to=room_id)
             emit('update_state', get_room_packet(room_id), to=room_id)
 
-            # Auto-Delete: Se não sobrou ninguém, apaga a sala da memória
-            if len(rooms[room_id]['users']) == 0:
-                print(f"🧹 Sala vazia deletada: {room_id}")
-                del rooms[room_id]
-
 @socketio.on('add_video')
+@limiter.limit("20 per minute")
 def handle_add(url):
-    if request.sid not in sid_map: return
+    if request.sid not in sid_map: 
+        return
+    
     room_id = sid_map[request.sid]['room']
     username = sid_map[request.sid]['username']
     
-    emit('notification', "Lendo Fita...", to=room_id)
+    # Verifica limite da playlist
+    if len(rooms[room_id]['playlist']) >= MAX_PLAYLIST_SIZE:
+        return emit('notification', f"❌ Playlist cheia! (Max: {MAX_PLAYLIST_SIZE})", to=request.sid)
+    
+    emit('notification', "🔍 Lendo Fita...", to=room_id)
     items = extract_info_smart(url)
     
     if items:
-        # Marca quem adicionou
+        # Limita quantidade de vídeos adicionados de uma vez
+        remaining_space = MAX_PLAYLIST_SIZE - len(rooms[room_id]['playlist'])
+        items = items[:remaining_space]
+        
         for item in items:
             item['added_by'] = username
             
         rooms[room_id]['playlist'].extend(items)
         
-        # Se a lista estava vazia, dá play automático
+        # Auto-play se estava vazio
         if len(rooms[room_id]['playlist']) == len(items):
             rooms[room_id]['current_video_index'] = 0
             rooms[room_id]['is_playing'] = True
@@ -210,10 +338,11 @@ def handle_add(url):
             rooms[room_id]['server_start_time'] = time.time()
             
         emit('update_state', get_room_packet(room_id), to=room_id)
-        msg = f"📚 {len(items)} faixas" if len(items) > 1 else f"Fita: {items[0]['title'][:15]}..."
+        
+        msg = f"📚 {len(items)} fita(s)" if len(items) > 1 else f"♪ {items[0]['title'][:30]}..."
         emit('notification', f"{msg} (por {username})", to=room_id)
     else:
-        emit('notification', "❌ Link Inválido ou Erro", to=request.sid)
+        emit('notification', "❌ Link inválido, erro na leitura ou não é YouTube", to=request.sid)
 
 @socketio.on('control_action')
 def handle_control(d):
@@ -241,18 +370,22 @@ def handle_next():
     room = rooms[room_id]
     
     has_next = False
+    
+    # Tenta próximo da fila
     if room['current_video_index'] + 1 < len(room['playlist']):
         room['current_video_index'] += 1
         has_next = True
+    
+    # Tenta Auto-DJ
     elif room['auto_dj_enabled'] and len(room['playlist']) > 0:
-        last = room['playlist'][-1]
-        rec = find_recommendation(last['title'])
-        if rec:
-            rec['added_by'] = '🤖 Auto-DJ'
-            room['playlist'].append(rec)
-            room['current_video_index'] += 1
-            has_next = True
-            emit('notification', "Auto-DJ inseriu uma fita", to=room_id)
+        if len(room['playlist']) < MAX_PLAYLIST_SIZE:
+            rec = find_recommendation(room_id)
+            if rec:
+                rec['added_by'] = '🤖 Auto-DJ'
+                room['playlist'].append(rec)
+                room['current_video_index'] += 1
+                has_next = True
+                emit('notification', "🤖 Auto-DJ adicionou uma fita", to=room_id)
     
     if has_next:
         room['is_playing'] = True
@@ -270,35 +403,45 @@ def handle_master_force(data):
     rooms[room_id]['is_playing'] = data['is_playing']
     rooms[room_id]['server_start_time'] = time.time()
     emit('update_state', get_room_packet(room_id), to=room_id)
-    emit('notification', f"⚠️ Sync Forçado por {username}", to=room_id)
+    emit('notification', f"⚡ Sync forçado por {username}", to=room_id)
 
 @socketio.on('shuffle')
+@limiter.limit("5 per minute")
 def handle_shuffle():
     if request.sid not in sid_map: return
     room_id = sid_map[request.sid]['room']
     
     idx = rooms[room_id]['current_video_index']
     playlist = rooms[room_id]['playlist']
+    
     if len(playlist) > idx + 1:
         future = playlist[idx+1:]
         random.shuffle(future)
         rooms[room_id]['playlist'] = playlist[:idx+1] + future
         emit('update_state', get_room_packet(room_id), to=room_id)
+        
+        username = sid_map[request.sid]['username']
+        emit('notification', f"🔀 {username} embaralhou a fila", to=room_id)
 
 @socketio.on('remove')
 def handle_remove(i):
     if request.sid not in sid_map: return
     room_id = sid_map[request.sid]['room']
     
-    if i > rooms[room_id]['current_video_index']:
-        rooms[room_id]['playlist'].pop(i)
+    # Só pode remover músicas futuras
+    if i > rooms[room_id]['current_video_index'] and i < len(rooms[room_id]['playlist']):
+        removed = rooms[room_id]['playlist'].pop(i)
         emit('update_state', get_room_packet(room_id), to=room_id)
+        emit('notification', f"🗑️ '{removed['title'][:30]}...' removida", to=room_id)
 
 @socketio.on('toggle_autodj')
 def handle_tdj(v): 
     if request.sid not in sid_map: return
     room_id = sid_map[request.sid]['room']
     rooms[room_id]['auto_dj_enabled'] = v
+    
+    status = "ativado" if v else "desativado"
+    emit('notification', f"🤖 Auto-DJ {status}", to=room_id)
     emit('update_state', get_room_packet(room_id), to=room_id)
 
 @socketio.on('request_sync')
@@ -308,8 +451,11 @@ def handle_req_sync():
         emit('update_state', get_room_packet(room_id), to=request.sid)
 
 @socketio.on('video_ended')
-def handle_ended(): handle_next()
+def handle_ended(): 
+    handle_next()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
+    print(f"🎵 Aurora Player rodando na porta {port}")
+    print(f"🔐 SECRET_KEY: {'definida por ambiente' if 'SECRET_KEY' in os.environ else 'gerada automaticamente'}")
     socketio.run(app, host='0.0.0.0', port=port)
