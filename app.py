@@ -93,137 +93,103 @@ def sanitize_url(url):
 
 def extract_info_smart(url):
     """
-    Extrai informações de vídeos/playlists do YouTube.
-    MÁXIMA PROTEÇÃO ANTI-BOT: Usa client iOS que raramente é bloqueado.
+    Estratégia 'Sanitizer': 
+    1. Tenta baixar o link original (Playlist/Mix).
+    2. Se o YouTube bloquear ou der erro de JSON (comum em servidores),
+       LIMPA o link (remove &list=...) e baixa apenas o vídeo único.
     """
-    try:
-        url = sanitize_url(url)
-        if not url:
-            print("❌ URL inválida ou não permitida")
-            return None
-        
-        # ESTRATÉGIA ANTI-BLOQUEIO MÁXIMA
-        ydl_opts = {
-            'quiet': False,  # Mostra erros para debug
-            'no_warnings': False,
-            'extract_flat': 'in_playlist',
-            'noplaylist': False,
-            'playlistend': 20,
-            'ignoreerrors': True,
-            'socket_timeout': 25,
-            
-            # CHAVE: Client iOS é o mais difícil de bloquear
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['ios', 'android'],  # iOS primeiro, Android fallback
-                    'player_skip': ['webpage'],
-                    'skip': ['dash', 'hls'],  # Só precisamos de metadados
-                }
-            },
-            
-            # User-Agent do iPhone
-            'user_agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
-            
-            # Headers iOS
-            'http_headers': {
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'X-Youtube-Client-Name': '5',  # iOS
-                'X-Youtube-Client-Version': '19.09.3',
-                'Origin': 'https://www.youtube.com',
-                'Connection': 'keep-alive',
-            }
-        }
+    
+    # --- FUNÇÃO INTERNA DE LIMPEZA DE URL ---
+    def clean_url_logic(dirty_url):
+        # Transforma "youtube.com/watch?v=ID&list=..." em "youtube.com/watch?v=ID"
+        if "v=" in dirty_url:
+            try:
+                # Pega tudo depois de v= e corta no primeiro &
+                video_id = dirty_url.split("v=")[1].split("&")[0]
+                return f"https://www.youtube.com/watch?v={video_id}"
+            except:
+                return dirty_url
+        elif "youtu.be/" in dirty_url:
+            try:
+                video_id = dirty_url.split("youtu.be/")[1].split("?")[0]
+                return f"https://www.youtube.com/watch?v={video_id}"
+            except:
+                return dirty_url
+        return dirty_url
 
+    # Validação básica
+    if not url: return None
+    url = url.strip()
+
+    # Configuração LEVE (Sem fingir ser iPhone, isso evita bloqueios em Datacenter)
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True, # O SEGREDO: Não baixa a página, só lê metadados API
+        'noplaylist': False,  # Tenta aceitar playlist primeiro
+        'playlistend': 20,
+        'ignoreerrors': True,
+        'no_warnings': True,
+        'socket_timeout': 15,
+    }
+
+    # --- TENTATIVA 1: URL Original (Tenta pegar o Mix/Playlist) ---
+    print(f"🔄 Tentativa 1 (Link Original): {url}")
+    try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            
-            if not info: 
-                print("❌ yt-dlp não retornou informações")
-                return None
-            
-            detected = []
+            # Se retornou dados válidos, processa e devolve
+            result = process_results(info)
+            if result: return result
+    except Exception as e:
+        print(f"⚠️ Tentativa 1 falhou (Provável erro de Tab/JSON): {e}")
 
-            # CASO 1: Playlist/Mix (tem 'entries')
-            if 'entries' in info and info['entries']:
-                print(f"📂 Playlist/Mix: {info.get('title', 'Sem título')} ({len(info['entries'])} vídeos)")
-                for entry in info['entries']:
-                    if entry and entry.get('id'):
-                        title = entry.get('title') or entry.get('id')  # Fallback para ID
-                        title = title[:MAX_VIDEO_TITLE_LENGTH]
-                        detected.append({
-                            'id': entry['id'],
-                            'title': title,
-                            'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
-                        })
+    # --- TENTATIVA 2: URL Sanitizada (Fallback para Vídeo Único) ---
+    # Se chegamos aqui, a playlist falhou. Vamos tentar só o vídeo.
+    
+    clean = clean_url_logic(url)
+    
+    # Só tenta de novo se a URL limpa for diferente da original
+    if clean != url:
+        print(f"✂️ Tentativa 2 (Link Limpo/Solo): {clean}")
+        try:
+            # Força o modo 'apenas vídeo'
+            ydl_opts['noplaylist'] = True 
+            
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(clean, download=False)
+                result = process_results(info)
+                if result: return result
+        except Exception as e:
+            print(f"❌ Tentativa 2 falhou: {e}")
 
-            # CASO 2: Vídeo Único
-            elif info.get('id'):
-                print(f"🎬 Vídeo único: {info.get('title', 'Sem título')} [ID: {info['id']}]")
-                title = info.get('title') or info['id']  # Fallback para ID se título não vier
-                title = title[:MAX_VIDEO_TITLE_LENGTH]
+    return None
+
+def process_results(info):
+    """Auxiliar para formatar o retorno do yt-dlp"""
+    if not info: return None
+    detected = []
+    
+    # CASO 1: Playlist
+    if 'entries' in info:
+        print(f"📂 Playlist detectada: {info.get('title')}")
+        for entry in info['entries']:
+            if entry and entry.get('id') and entry.get('title'):
                 detected.append({
-                    'id': info['id'],
-                    'title': title,
-                    'thumbnail': info.get('thumbnail') or f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+                    'id': entry['id'],
+                    'title': entry['title'],
+                    'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                 })
-            
-            if not detected:
-                print("⚠️ Nenhum vídeo válido encontrado na resposta")
-                return None
-                
-            print(f"✅ {len(detected)} vídeo(s) extraído(s) com sucesso")
-            return detected
-
-    except Exception as e:
-        error_msg = str(e)
-        print(f"❌ Erro em extract_info_smart: {type(e).__name__}: {error_msg}")
+    
+    # CASO 2: Vídeo Único
+    elif info.get('id') and info.get('title'):
+        print(f"🎬 Vídeo detectado: {info.get('title')}")
+        detected.append({
+            'id': info['id'],
+            'title': info['title'],
+            'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+        })
         
-        # Se for erro de bot, tenta fallback com innertube
-        if 'bot' in error_msg.lower() or 'sign in' in error_msg.lower():
-            print("🔄 Tentando método alternativo (innertube API)...")
-            return extract_fallback_innertube(url)
-        
-        return None
-
-def extract_fallback_innertube(url):
-    """
-    Fallback quando client iOS falha: usa InnerTube API diretamente.
-    Extrai apenas ID do vídeo da URL e constrói metadados mínimos.
-    """
-    try:
-        import re
-        
-        # Extrai video ID da URL
-        patterns = [
-            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',  # youtube.com/watch?v=ID ou youtu.be/ID
-            r'(?:embed\/)([0-9A-Za-z_-]{11})',   # youtube.com/embed/ID
-        ]
-        
-        video_id = None
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                video_id = match.group(1)
-                break
-        
-        if not video_id:
-            print("❌ Não conseguiu extrair ID do vídeo da URL")
-            return None
-        
-        print(f"🆔 ID extraído: {video_id}")
-        
-        # Monta resposta mínima (funcional)
-        return [{
-            'id': video_id,
-            'title': f"Vídeo {video_id}",  # Título genérico, player vai carregar o real
-            'thumbnail': f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
-        }]
-        
-    except Exception as e:
-        print(f"❌ Fallback também falhou: {e}")
-        return None
+    return detected if detected else None
 
 def find_recommendation(room_id):
     """Auto-DJ inteligente baseado nas preferências da sala"""
