@@ -48,62 +48,53 @@ def index():
 
 def extract_info_smart(url):
     """
-    Verificador Inteligente:
-    - Se tem '&' na URL -> Assume Playlist/Mix (Modo Rápido)
-    - Se NÃO tem '&' -> Assume Vídeo Único (Modo Bruto/Garantido)
+    MODO FLASH: Usa extract_flat=True para TUDO.
+    É mais rápido, evita bloqueios de IP e funciona para Vídeo Único e Playlist.
     """
     try:
-        # LÓGICA DO USUÁRIO: Separação por '&'
-        if '&' in url:
-            print(f"🔀 Link Complexo detectado (Com '&'): {url}")
-            ydl_opts = {
-                'quiet': True,
-                'extract_flat': 'in_playlist', # Rápido para listas
-                'noplaylist': False,
-                'playlistend': 20,
-                'ignoreerrors': True
-            }
-        else:
-            print(f"🎵 Link Solo detectado (Sem '&'): {url}")
-            ydl_opts = {
-                'quiet': True,
-                'extract_flat': False, # LÊ TUDO (Essencial para vídeos únicos funcionarem 100%)
-                'noplaylist': True,    # Força modo vídeo único
-                'ignoreerrors': True
-            }
+        url = url.strip() # Remove espaços acidentais
+        
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True, # O SEGREDO: Nunca baixa a página, só lê metadados
+            'noplaylist': False,  # Aceita tudo
+            'playlistend': 20,
+            'ignoreerrors': True  # Pula vídeos com erro na lista
+        }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            
+            if not info: return None
+            
             detected = []
 
-            if not info: return None
-
-            # --- PROCESSAMENTO DO RESULTADO ---
-            
-            # 1. Se devolveu uma lista (Playlist/Mix)
+            # CASO 1: É Playlist ou Mix (Tem 'entries')
             if 'entries' in info:
-                print(f"📂 Processando Playlist: {info.get('title')}")
+                print(f"📂 Playlist/Mix detectada: {info.get('title')}")
                 for entry in info['entries']:
+                    # Validação tripla para garantir que o item é válido
                     if entry and entry.get('id') and entry.get('title'):
                         detected.append({
                             'id': entry['id'],
                             'title': entry['title'],
                             'thumbnail': f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
                         })
-            
-            # 2. Se devolveu um vídeo único (Solo)
+
+            # CASO 2: É Vídeo Único (Não tem 'entries', é o próprio objeto)
             elif info.get('id') and info.get('title'):
-                print(f"🎬 Processando Vídeo Único: {info.get('title')}")
+                print(f"🎬 Vídeo Único detectado: {info.get('title')}")
                 detected.append({
                     'id': info['id'],
                     'title': info['title'],
                     'thumbnail': f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
                 })
-
-            return detected
+            
+            # Se a lista estiver vazia, retorna None para disparar o erro no front
+            return detected if detected else None
 
     except Exception as e:
-        print(f"❌ Erro na extração: {e}")
+        print(f"❌ Erro Crítico: {e}")
         return None
 
 def find_recommendation(last_title):
